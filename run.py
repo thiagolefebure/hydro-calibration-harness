@@ -93,6 +93,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Generate rapport_calage.md from experiment outputs (Phase 6)",
     )
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="Generate final interview demo figures from artifacts (Phase 7)",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Run the full reproducible pipeline including demo figures",
+    )
     return parser.parse_args(argv)
 
 
@@ -174,6 +184,160 @@ def run_data_pipeline(args: argparse.Namespace, config: dict) -> tuple[object, d
     )
 
 
+def run_metrics_stage(args: argparse.Namespace, config: dict) -> Path:
+    from src.evaluation import (
+        evaluate_uncalibrated_run,
+        metrics_to_dataframe,
+        print_metrics_table,
+        save_metrics_csv,
+    )
+
+    timezone = args.meteo_timezone if args.meteo_timezone is not None else get_meteo_timezone(config)
+    evaluation = evaluate_uncalibrated_run(
+        config,
+        cache_dir=args.cache_dir,
+        timezone=timezone,
+    )
+    csv_path = save_metrics_csv(
+        metrics_to_dataframe(evaluation),
+        args.output_dir / "metrics_uncalibrated.csv",
+    )
+    print_metrics_table(evaluation)
+    print()
+    print(f"CSV written: {csv_path.resolve()}")
+    print(f"log-NSE convention: ln(Q + {get_log_nse_epsilon(config)} mm/day)")
+    return csv_path
+
+
+def run_hydro_summary_stage(args: argparse.Namespace, config: dict):
+    from src.hydrology import print_hydrological_summary, run_hydrological_characterization
+
+    processed_path = args.output_dir / "data" / "basin_daily.csv"
+    summary = run_hydrological_characterization(
+        processed_path=processed_path,
+        config=config,
+        output_dir=args.output_dir,
+    )
+    print_hydrological_summary(summary)
+    print()
+    print(f"CSV written:   {(args.output_dir / 'hydrological_summary.csv').resolve()}")
+    print(f"Figure written: {(args.output_dir / 'hydrological_years.png').resolve()}")
+    return summary
+
+
+def run_calibration_stage(args: argparse.Namespace, config_path: Path, config: dict):
+    from src.calibration import run_calibration_experiment
+    from src.calibration_diagnostics import (
+        load_n1000_reference,
+        print_phase4b_report,
+        save_n1000_reference,
+        save_parameter_space_diagnostic_figure,
+    )
+    from src.experiment_data import load_experiment_data
+    from src.experiment_metadata import save_metadata
+    from src.validation import select_best_calibration_candidate
+
+    processed_path = args.output_dir / "data" / "basin_daily.csv"
+    n1000_ref_path = args.output_dir / "reference" / "n1000_best_calibration.csv"
+    runs_path = args.output_dir / "runs.csv"
+    if runs_path.is_file() and len(pd.read_csv(runs_path)) == 1000:
+        n1000_best = select_best_calibration_candidate(pd.read_csv(runs_path))
+        save_n1000_reference(n1000_best, n1000_ref_path)
+    data = load_experiment_data(
+        config,
+        cache_dir=args.cache_dir,
+        processed_path=processed_path,
+        timezone=args.meteo_timezone if args.meteo_timezone is not None else get_meteo_timezone(config),
+    )
+    result = run_calibration_experiment(config, data, args.output_dir)
+    figure_path = save_parameter_space_diagnostic_figure(
+        result.runs,
+        args.output_dir / "parameter_space_diagnostic.png",
+    )
+    n1000_best = load_n1000_reference(n1000_ref_path)
+    print_phase4b_report(
+        result,
+        config,
+        n1000_best=n1000_best,
+        diagnostic_figure_path=figure_path,
+    )
+    save_metadata(
+        args.output_dir,
+        {
+            "calibration_runtime_s": result.runtime_total_s,
+            "calibration_runtime_per_eval_s": result.runtime_per_run_s,
+        },
+    )
+    return result
+
+
+def run_ensemble_stage(args: argparse.Namespace, config: dict):
+    from src.ensemble import print_ensemble_report, run_ensemble_analysis
+    from src.experiment_data import load_experiment_data
+    from src.experiment_metadata import save_metadata
+
+    runs_path = args.output_dir / "runs.csv"
+    processed_path = args.output_dir / "data" / "basin_daily.csv"
+    if not runs_path.is_file():
+        raise FileNotFoundError(f"runs.csv not found: {runs_path}")
+    runs = pd.read_csv(runs_path)
+    data = load_experiment_data(
+        config,
+        cache_dir=args.cache_dir,
+        processed_path=processed_path,
+        timezone=args.meteo_timezone if args.meteo_timezone is not None else get_meteo_timezone(config),
+    )
+    result = run_ensemble_analysis(config, data, runs, args.output_dir)
+    print_ensemble_report(result)
+    save_metadata(args.output_dir, {"ensemble_runtime_s": result.runtime_total_s})
+    return result
+
+
+def run_report_stage(args: argparse.Namespace, config_path: Path, config: dict) -> Path:
+    from src.experiment_metadata import build_reproducibility_block
+    from src.rapport_calage import generate_rapport_calage
+
+    required = [
+        "runs.csv",
+        "metrics_uncalibrated.csv",
+        "behavioral_runs.csv",
+        "ensemble_timeseries.csv",
+        "hydrological_summary.csv",
+        "data/basin_daily.csv",
+    ]
+    missing = [name for name in required if not (args.output_dir / name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"missing artifacts: {', '.join(missing)}")
+    report_path = generate_rapport_calage(config_path, args.output_dir)
+    repro = build_reproducibility_block(config_path, config, output_dir=args.output_dir)
+    print("=== Phase 6: calibration report ===")
+    print(f"Report written: {report_path.resolve()}")
+    print(f"Config SHA256:    {repro['config_sha256']}")
+    print(f"Git commit:       {repro['git_commit'] or 'not available'}")
+    return report_path
+
+
+def run_demo_stage(args: argparse.Namespace, config_path: Path) -> dict[str, Path]:
+    from src.demo import generate_demo_figures
+
+    required = [
+        "runs.csv",
+        "metrics_uncalibrated.csv",
+        "behavioral_runs.csv",
+        "ensemble_timeseries.csv",
+        "ensemble_threshold_sensitivity.csv",
+        "data/basin_daily.csv",
+    ]
+    missing = [name for name in required if not (args.output_dir / name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"missing artifacts: {', '.join(missing)}")
+    paths = generate_demo_figures(config_path, args.output_dir)
+    print("=== Phase 7: demo figures ===")
+    for label, path in paths.items():
+        print(f"{label}: {path.resolve()}")
+    return paths
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     config_path = args.config.resolve()
@@ -212,156 +376,70 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.metrics_demo:
-        from src.evaluation import (
-            evaluate_uncalibrated_run,
-            metrics_to_dataframe,
-            print_metrics_table,
-            save_metrics_csv,
-        )
-
         try:
-            timezone = args.meteo_timezone if args.meteo_timezone is not None else get_meteo_timezone(config)
-            evaluation = evaluate_uncalibrated_run(
-                config,
-                cache_dir=args.cache_dir,
-                timezone=timezone,
-            )
-            csv_path = save_metrics_csv(
-                metrics_to_dataframe(evaluation),
-                args.output_dir / "metrics_uncalibrated.csv",
-            )
+            run_metrics_stage(args, config)
         except Exception as exc:
             print(f"Metrics evaluation failed: {exc}", file=sys.stderr)
             return 1
-        print_metrics_table(evaluation)
-        print()
-        print(f"CSV written: {csv_path.resolve()}")
-        print(f"log-NSE convention: ln(Q + {get_log_nse_epsilon(config)} mm/day)")
         return 0
 
     if args.hydro_summary:
-        from src.hydrology import print_hydrological_summary, run_hydrological_characterization
-
-        processed_path = args.output_dir / "data" / "basin_daily.csv"
         try:
-            summary = run_hydrological_characterization(
-                processed_path=processed_path,
-                config=config,
-                output_dir=args.output_dir,
-            )
+            run_hydro_summary_stage(args, config)
         except Exception as exc:
             print(f"Hydrological summary failed: {exc}", file=sys.stderr)
             return 1
-        print_hydrological_summary(summary)
-        print()
-        print(f"CSV written:   {(args.output_dir / 'hydrological_summary.csv').resolve()}")
-        print(f"Figure written: {(args.output_dir / 'hydrological_years.png').resolve()}")
         return 0
 
     if args.calibrate:
-        from src.calibration import run_calibration_experiment
-        from src.calibration_diagnostics import (
-            load_n1000_reference,
-            print_phase4b_report,
-            save_n1000_reference,
-            save_parameter_space_diagnostic_figure,
-        )
-        from src.experiment_data import load_experiment_data
-        from src.validation import select_best_calibration_candidate
-
-        processed_path = args.output_dir / "data" / "basin_daily.csv"
-        n1000_ref_path = args.output_dir / "reference" / "n1000_best_calibration.csv"
-        runs_path = args.output_dir / "runs.csv"
         try:
-            if runs_path.is_file() and len(pd.read_csv(runs_path)) == 1000:
-                n1000_best = select_best_calibration_candidate(pd.read_csv(runs_path))
-                save_n1000_reference(n1000_best, n1000_ref_path)
-            data = load_experiment_data(
-                config,
-                cache_dir=args.cache_dir,
-                processed_path=processed_path,
-                timezone=args.meteo_timezone if args.meteo_timezone is not None else get_meteo_timezone(config),
-            )
-            result = run_calibration_experiment(config, data, args.output_dir)
-            figure_path = save_parameter_space_diagnostic_figure(
-                result.runs,
-                args.output_dir / "parameter_space_diagnostic.png",
-            )
-            n1000_best = load_n1000_reference(n1000_ref_path)
+            run_calibration_stage(args, config_path, config)
         except Exception as exc:
             print(f"Calibration experiment failed: {exc}", file=sys.stderr)
             return 1
-        print_phase4b_report(
-            result,
-            config,
-            n1000_best=n1000_best,
-            diagnostic_figure_path=figure_path,
-        )
-        from src.experiment_metadata import save_metadata
-
-        save_metadata(
-            args.output_dir,
-            {
-                "calibration_runtime_s": result.runtime_total_s,
-                "calibration_runtime_per_eval_s": result.runtime_per_run_s,
-            },
-        )
         return 0
 
     if args.ensemble:
-        from src.ensemble import print_ensemble_report, run_ensemble_analysis
-        from src.experiment_data import load_experiment_data
-
-        runs_path = args.output_dir / "runs.csv"
-        processed_path = args.output_dir / "data" / "basin_daily.csv"
-        if not runs_path.is_file():
-            print(f"runs.csv not found: {runs_path}", file=sys.stderr)
-            print("Run `python run.py --calibrate` first.", file=sys.stderr)
-            return 1
         try:
-            runs = pd.read_csv(runs_path)
-            data = load_experiment_data(
-                config,
-                cache_dir=args.cache_dir,
-                processed_path=processed_path,
-                timezone=args.meteo_timezone if args.meteo_timezone is not None else get_meteo_timezone(config),
-            )
-            result = run_ensemble_analysis(config, data, runs, args.output_dir)
+            run_ensemble_stage(args, config)
         except Exception as exc:
             print(f"Ensemble analysis failed: {exc}", file=sys.stderr)
             return 1
-        print_ensemble_report(result)
-        from src.experiment_metadata import save_metadata
-
-        save_metadata(args.output_dir, {"ensemble_runtime_s": result.runtime_total_s})
         return 0
 
     if args.report:
-        from src.experiment_metadata import build_reproducibility_block, config_sha256
-        from src.rapport_calage import REPORT_FILENAME, generate_rapport_calage
-
-        required = [
-            "runs.csv",
-            "metrics_uncalibrated.csv",
-            "behavioral_runs.csv",
-            "ensemble_timeseries.csv",
-            "hydrological_summary.csv",
-            "data/basin_daily.csv",
-        ]
-        missing = [name for name in required if not (args.output_dir / name).is_file()]
-        if missing:
-            print("Report generation failed: missing artifacts:", ", ".join(missing), file=sys.stderr)
-            return 1
         try:
-            report_path = generate_rapport_calage(config_path, args.output_dir)
-            repro = build_reproducibility_block(config_path, config, output_dir=args.output_dir)
+            run_report_stage(args, config_path, config)
         except Exception as exc:
             print(f"Report generation failed: {exc}", file=sys.stderr)
             return 1
-        print("=== Phase 6: calibration report ===")
-        print(f"Report written: {report_path.resolve()}")
-        print(f"Config SHA256:    {repro['config_sha256']}")
-        print(f"Git commit:       {repro['git_commit'] or 'not available'}")
+        return 0
+
+    if args.demo:
+        try:
+            run_demo_stage(args, config_path)
+        except Exception as exc:
+            print(f"Demo figure generation failed: {exc}", file=sys.stderr)
+            return 1
+        return 0
+
+    if args.all:
+        stages = [
+            ("data", lambda: run_data_pipeline(args, config)),
+            ("metrics", lambda: run_metrics_stage(args, config)),
+            ("hydrological summary", lambda: run_hydro_summary_stage(args, config)),
+            ("calibration", lambda: run_calibration_stage(args, config_path, config)),
+            ("ensemble", lambda: run_ensemble_stage(args, config)),
+            ("report", lambda: run_report_stage(args, config_path, config)),
+            ("demo figures", lambda: run_demo_stage(args, config_path)),
+        ]
+        for idx, (label, action) in enumerate(stages, start=1):
+            print(f"[{idx}/{len(stages)}] {label}")
+            try:
+                action()
+            except Exception as exc:
+                print(f"Stage failed ({label}): {exc}", file=sys.stderr)
+                return 1
         return 0
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
