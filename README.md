@@ -39,3 +39,33 @@ python run.py --ensemble
 python run.py --report
 python run.py --demo
 ```
+
+## Static interview demo
+
+A presentation-only single-page interface lives in `demo/`. It contains no
+calibration logic and reads values from exported artifacts.
+
+1. Ensure scientific outputs and demo figures already exist, then export:
+
+```bash
+python run.py --export-demo
+```
+
+2. Open locally:
+
+```bash
+demo/index.html
+```
+
+If the browser blocks local `fetch` of `demo/assets/demo_data.json`, serve the
+repository root:
+
+```bash
+python -m http.server 8000
+```
+
+Then open:
+
+```text
+http://localhost:8000/demo/
+```

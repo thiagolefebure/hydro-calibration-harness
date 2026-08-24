@@ -1,0 +1,91 @@
+{
+  "title": "Automated Rainfall\u2013Runoff Calibration",
+  "subtitle": "Prototype of a reproducible calibration harness for hydrological models",
+  "secondary_line": "Real hydrometric data \u00b7 constrained parameter exploration \u00b7 independent validation \u00b7 explicit uncertainty",
+  "prototype_badge": "PROTOTYPE \u2014 NOT FOR OPERATIONAL DECISION-MAKING",
+  "station": {
+    "code": "H0203020",
+    "name": "La Laignes \u00e0 Molesme",
+    "basin_area_km2": 615.0,
+    "centroid_lat": 47.96178,
+    "centroid_lon": 4.361
+  },
+  "periods": {
+    "analysis_label": "2010\u20132015",
+    "warmup": [
+      "2010-01-01",
+      "2010-12-31"
+    ],
+    "calibration": [
+      "2011-01-01",
+      "2013-12-31"
+    ],
+    "validation": [
+      "2014-01-01",
+      "2015-12-31"
+    ],
+    "temporal_resolution": "Daily"
+  },
+  "model": {
+    "name": "GR4J",
+    "label": "GR4J \u2014 conceptual rainfall\u2013runoff model"
+  },
+  "kpis": {
+    "n_samples": 5000,
+    "n_samples_configured": 5000,
+    "validation_kge_uncalibrated": 0.2025950154821059,
+    "validation_kge_calibrated": 0.8350031039633835,
+    "validation_bias_uncalibrated": 0.6109471464877356,
+    "validation_bias_calibrated": 0.059720513414998,
+    "behavioral_members": 126,
+    "behavioral_threshold": 0.8
+  },
+  "metrics": {
+    "uncalibrated": {
+      "kge_cal": 0.4730837385381981,
+      "kge_val": 0.2025950154821059,
+      "nse_cal": 0.4401633920367365,
+      "nse_val": 0.060020849506573,
+      "lognse_cal": 0.6633222053896632,
+      "lognse_val": 0.5791138282402513,
+      "bias_cal": 0.4402642874552427,
+      "bias_val": 0.6109471464877356
+    },
+    "calibrated": {
+      "kge_cal": 0.9027102033230876,
+      "kge_val": 0.8350031039633835,
+      "nse_cal": 0.8083322587352524,
+      "nse_val": 0.7923472774981013,
+      "lognse_cal": 0.7695429463865184,
+      "lognse_val": 0.8705308173621984,
+      "bias_cal": -0.0103320114396039,
+      "bias_val": 0.059720513414998
+    }
+  },
+  "uncertainty": {
+    "empirical_validation_coverage": 0.5986301369863014,
+    "corr_kge_cal_val": 0.952850218532772
+  },
+  "runtime": {
+    "calibration_runtime_s": 898.59,
+    "calibration_runtime_per_eval_s": 0.1797
+  },
+  "reproducibility": {
+    "config_sha256": "0b093d57f547f99b6ba191ad1903ccb368d62ed77bd202028c4b6e06f4ef7353",
+    "git_commit": "a86c07fe76b7da3ca24653a284b252c2b9de563c",
+    "random_seed": 42,
+    "sampler": "latin_hypercube"
+  },
+  "github_url": "https://github.com/thiagolefebure/hydro-calibration-harness",
+  "figures": {
+    "calibration": "assets/demo_01_calibration_impact.png",
+    "validation": "assets/demo_02_validation.png",
+    "uncertainty": "assets/demo_03_uncertainty.png"
+  },
+  "report_html": "assets/rapport_calage.html",
+  "statements": {
+    "validation_isolation": "Validation observations are never used for parameter fitting or ranking.",
+    "parametric_only": "Precipitation, observation, initial-state and model-structure uncertainty are not propagated in this prototype.",
+    "envelope_disclaimer": "q05\u2013q95 is NOT a calibrated 90% prediction interval"
+  }
+}

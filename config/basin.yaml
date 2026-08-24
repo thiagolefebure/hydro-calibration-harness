@@ -33,3 +33,8 @@ calibration:
 
 metrics:
   log_nse_epsilon_mm: 0.01
+
+# Optional presentation metadata for the static interview demo.
+# If unset, `python run.py --export-demo` uses the detected git origin URL when available.
+demo:
+  github_url: null

@@ -103,6 +103,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Run the full reproducible pipeline including demo figures",
     )
+    parser.add_argument(
+        "--export-demo",
+        action="store_true",
+        help="Export static interview demo assets from existing artifacts (no recalibration)",
+    )
     return parser.parse_args(argv)
 
 
@@ -421,6 +426,26 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:
             print(f"Demo figure generation failed: {exc}", file=sys.stderr)
             return 1
+        return 0
+
+    if args.export_demo:
+        from src.demo_export import DemoExportError, export_static_demo
+
+        demo_dir = Path("demo")
+        try:
+            paths = export_static_demo(config_path, args.output_dir, demo_dir)
+        except DemoExportError as exc:
+            print(f"Demo export failed: {exc}", file=sys.stderr)
+            return 1
+        except Exception as exc:
+            print(f"Demo export failed: {exc}", file=sys.stderr)
+            return 1
+        print("=== Static interview demo export ===")
+        print(f"demo_data.json: {paths['demo_data'].resolve()}")
+        print(f"report HTML:    {paths['report_html'].resolve()}")
+        print(f"Open file:      {(demo_dir / 'index.html').resolve()}")
+        print("Or serve:        python -m http.server 8000")
+        print("Then open:       http://localhost:8000/demo/")
         return 0
 
     if args.all:

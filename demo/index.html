@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Automated Rainfall–Runoff Calibration</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="badge" id="prototype-badge">PROTOTYPE — NOT FOR OPERATIONAL DECISION-MAKING</div>
+      <h1 id="page-title">Automated Rainfall–Runoff Calibration</h1>
+      <p class="subtitle" id="page-subtitle">
+        Prototype of a reproducible calibration harness for hydrological models
+      </p>
+      <p class="secondary" id="secondary-line">
+        Real hydrometric data · constrained parameter exploration · independent validation · explicit uncertainty
+      </p>
+    </header>
+
+    <section class="basin-context" aria-label="Basin context">
+      <div class="meta-grid">
+        <div><span class="label">Pilot basin</span><strong id="basin-name">—</strong></div>
+        <div><span class="label">Station</span><strong id="station-code">—</strong></div>
+        <div><span class="label">Catchment area</span><strong id="basin-area">—</strong></div>
+        <div><span class="label">Data period</span><strong id="data-period">—</strong></div>
+        <div><span class="label">Temporal resolution</span><strong id="temporal-resolution">—</strong></div>
+        <div><span class="label">Model</span><strong id="model-label">—</strong></div>
+      </div>
+    </section>
+
+    <section class="kpi-row" aria-label="Key results">
+      <article class="kpi-card">
+        <h2>Parameter sets explored</h2>
+        <p class="kpi-value" id="kpi-samples">—</p>
+        <p class="kpi-caption">Latin Hypercube sampling</p>
+      </article>
+      <article class="kpi-card">
+        <h2>Validation KGE</h2>
+        <p class="kpi-value" id="kpi-kge">—</p>
+        <p class="kpi-caption">uncalibrated → automatically calibrated</p>
+      </article>
+      <article class="kpi-card">
+        <h2>Validation volume bias</h2>
+        <p class="kpi-value" id="kpi-bias">—</p>
+        <p class="kpi-caption">uncalibrated → calibrated</p>
+      </article>
+      <article class="kpi-card">
+        <h2>Behavioral models</h2>
+        <p class="kpi-value" id="kpi-behavioral">—</p>
+        <p class="kpi-caption" id="kpi-behavioral-caption">KGE_cal &gt; —</p>
+      </article>
+    </section>
+
+    <section class="story" aria-label="Main results">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="calibration" role="tab" aria-selected="true">Calibration</button>
+        <button class="tab" data-tab="validation" role="tab" aria-selected="false">Validation</button>
+        <button class="tab" data-tab="uncertainty" role="tab" aria-selected="false">Uncertainty</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-calibration" role="tabpanel">
+        <div class="panel-grid">
+          <figure>
+            <img id="fig-calibration" alt="Calibration impact on validation hydrograph" />
+          </figure>
+          <div class="panel-copy">
+            <p>
+              An uncalibrated GR4J model is used as the baseline. The harness explores
+              constrained parameter sets automatically and selects candidates using
+              calibration performance only.
+            </p>
+            <ul>
+              <li id="bullet-samples">— parameter sets explored</li>
+              <li>parameter bounds externalized in configuration</li>
+              <li>no manual tuning of the baseline</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-validation" role="tabpanel" hidden>
+        <div class="panel-grid">
+          <figure>
+            <img id="fig-validation" alt="Calibration versus independent validation metrics" />
+          </figure>
+          <div class="panel-copy">
+            <p class="callout" id="validation-isolation">
+              Validation observations are never used for parameter fitting or ranking.
+            </p>
+            <ul>
+              <li id="bullet-cal-period">calibration: —</li>
+              <li id="bullet-val-period">validation: —</li>
+              <li>model states remain continuous across the period boundary</li>
+            </ul>
+            <p class="highlight">
+              Good calibration performance is not accepted as sufficient evidence of model
+              quality.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-uncertainty" role="tabpanel" hidden>
+        <div class="panel-grid">
+          <figure>
+            <img id="fig-uncertainty" alt="Parametric uncertainty envelope on validation period" />
+          </figure>
+          <div class="panel-copy">
+            <p>The behavioral envelope represents parametric dispersion only.</p>
+            <ul>
+              <li id="bullet-behavioral">— behavioral parameter sets</li>
+              <li id="bullet-coverage">empirical validation coverage: —</li>
+              <li id="bullet-envelope">q05–q95 is NOT a calibrated 90% prediction interval</li>
+            </ul>
+            <p class="warning" id="parametric-limitation">
+              Precipitation, observation, initial-state and model-structure uncertainty are
+              not propagated in this prototype.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="architecture" aria-label="Architecture">
+      <h2>Calibration harness architecture</h2>
+      <div class="arch-strip">
+        <div class="arch-node"><strong>DATA</strong></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node"><strong>QA / QC</strong></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node">
+          <strong>HYDROLOGICAL MODEL</strong>
+          <small>Replaceable engine</small>
+        </div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node"><strong>PARAMETER EXPLORATION</strong></div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node">
+          <strong>CALIBRATION</strong>
+          <small>KGE_cal ranking</small>
+        </div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node">
+          <strong>INDEPENDENT VALIDATION</strong>
+          <small>never used for fitting</small>
+        </div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node">
+          <strong>ENSEMBLE</strong>
+          <small>parametric uncertainty</small>
+        </div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node"><strong>AUDIT REPORT</strong></div>
+      </div>
+    </section>
+
+    <section class="audit" aria-label="Auditability">
+      <h2>Every calibration produces an auditable run</h2>
+      <ul class="checklist">
+        <li>configuration hash</li>
+        <li>random seed</li>
+        <li>model/version metadata</li>
+        <li>parameter bounds</li>
+        <li>calibration and validation metrics</li>
+        <li>behavioral ensemble definition</li>
+        <li>explicit limitations</li>
+        <li>generated artifacts</li>
+      </ul>
+      <p class="meta-line">
+        Config SHA256: <code id="config-hash">—</code>
+        · Git commit: <code id="git-commit">—</code>
+      </p>
+      <a class="button" id="report-link" href="assets/rapport_calage.html">Open calibration report</a>
+    </section>
+
+    <section class="proves" aria-label="What this prototype proves">
+      <h2>What this prototype proves</h2>
+      <div class="three-cards">
+        <article>
+          <h3>Automation</h3>
+          <p>
+            Expert calibration steps can be transformed into a reproducible computational
+            workflow.
+          </p>
+        </article>
+        <article>
+          <h3>Guardrails</h3>
+          <p>
+            Independent validation, explicit constraints and traceability reduce the risk
+            of accepting a numerically attractive but fragile model.
+          </p>
+        </article>
+        <article>
+          <h3>Extensibility</h3>
+          <p>
+            The calibration harness is designed so the hydrological engine can later be
+            replaced or connected to HEC-HMS.
+          </p>
+          <p class="note">HEC-HMS integration is a future step — not implemented in this prototype.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="next-step" aria-label="Next step toward the target system">
+      <h2>From prototype to operational +24 h / +48 h forecasting</h2>
+      <p class="note">
+        The items below are future project work. They are not present capabilities of this
+        prototype.
+      </p>
+      <ol>
+        <li>Connect HEC-HMS or selected hydrological engine</li>
+        <li>Replace centroid precipitation with operational basin forcing</li>
+        <li>Add real-time sensor ingestion and basin-state updating</li>
+        <li>Propagate meteorological uncertainty into forecast intervals</li>
+      </ol>
+    </section>
+
+    <footer class="footer">
+      <p>Hydrological calibration engineering prototype</p>
+      <p>
+        Scientific results generated by the Python pipeline — frontend contains no
+        calibration logic.
+      </p>
+      <p>
+        <a id="github-link" href="#" rel="noopener noreferrer">GitHub repository</a>
+        <span id="github-placeholder" hidden>GitHub URL not configured</span>
+      </p>
+    </footer>
+
+    <p id="load-error" class="load-error" hidden></p>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
