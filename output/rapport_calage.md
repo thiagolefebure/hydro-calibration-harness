@@ -212,9 +212,9 @@ Note: 2014 shows a lower annual maximum daily discharge than neighbouring years 
 
 ## 13. Reproducibility
 
-- **Generated at (UTC):** 2026-08-23T16:42:06Z
+- **Generated at (UTC):** 2026-08-24T08:05:48Z
 - **Configuration SHA256:** `8b0f60d562d633a7b8a23eec414e91d022b665f1d3c9f774c5f6fc13c39b1645`
-- **Git commit:** not available
+- **Git commit:** 9ae2797fff857406a61d63e4c24eb31a2fed675b
 - **Python version:** 3.14.0
 - **Model / prototype version:** gr4j-prototype-v0.1
 - **Random seed:** 42
