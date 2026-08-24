@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+cache/*
+!cache/.gitkeep
+
+output/*
+!output/.gitkeep
+
+# Keep final demo artifacts
+!output/demo_01_calibration_impact.png
+!output/demo_02_validation.png
+!output/demo_03_uncertainty.png
+!output/rapport_calage.md
+
+# Keep directory structure only for processed data
+!output/data/
+output/data/*
+!output/data/.gitkeep

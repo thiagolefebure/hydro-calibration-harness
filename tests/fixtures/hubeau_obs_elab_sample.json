@@ -1,0 +1,37 @@
+{
+  "count": 4,
+  "data": [
+    {
+      "code_site": "H0203020",
+      "code_station": "H020302002",
+      "date_obs_elab": "2011-01-01",
+      "resultat_obs_elab": 1000.0,
+      "grandeur_hydro_elab": "QmnJ",
+      "libelle_qualification": "Bonne"
+    },
+    {
+      "code_site": "H0203020",
+      "code_station": null,
+      "date_obs_elab": "2011-01-01",
+      "resultat_obs_elab": 1000.0,
+      "grandeur_hydro_elab": "QmnJ",
+      "libelle_qualification": "Bonne"
+    },
+    {
+      "code_site": "H0203020",
+      "code_station": "H020302002",
+      "date_obs_elab": "2011-01-02",
+      "resultat_obs_elab": 1100.0,
+      "grandeur_hydro_elab": "QmnJ",
+      "libelle_qualification": "Bonne"
+    },
+    {
+      "code_site": "H0203020",
+      "code_station": "H020302002",
+      "date_obs_elab": "2011-01-04",
+      "resultat_obs_elab": 900.0,
+      "grandeur_hydro_elab": "QmnJ",
+      "libelle_qualification": "Bonne"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+# Pilot basin — La Laignes à Molesme (Hub'Eau site H0203020)
+# basin_area_km2 source: Hub'Eau referentiel/sites field surface_bv (615 km², retrieved 2026-08-23)
+# Before final demo: confirm calibration/validation cover diverse hydrological conditions (spec §3).
+
+station:
+  code: "H0203020"
+  name: "La Laignes à Molesme"
+  basin_area_km2: 615.0
+  centroid_lat: 47.961780
+  centroid_lon: 4.361000
+
+data:
+  meteo_timezone: "Europe/Paris"
+
+periods:
+  warmup: ["2010-01-01", "2010-12-31"]
+  calibration: ["2011-01-01", "2013-12-31"]
+  validation: ["2014-01-01", "2015-12-31"]
+
+model:
+  name: "GR4J"
+  parameter_bounds:
+    X1: [100, 1200]
+    X2: [-5, 3]
+    X3: [20, 300]
+    X4: [1.1, 2.9]
+
+calibration:
+  sampler: "latin_hypercube"
+  n_samples: 5000
+  seed: 42
+  behavioral_kge_threshold: 0.80
+
+metrics:
+  log_nse_epsilon_mm: 0.01
