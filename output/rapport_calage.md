@@ -1,71 +1,71 @@
-**STATUS: PROTOTYPE / NOT FOR OPERATIONAL HYDROLOGICAL DECISION-MAKING**
+**STATUT : PROTOTYPE / NON DESTINÉ À LA DÉCISION HYDROLOGIQUE OPÉRATIONNELLE**
 
-# Automated Rainfall–Runoff Calibration Report
+# Rapport de calage pluie–débit automatisé
 
-## 1. Prototype scope
+## 1. Périmètre du prototype
 
-This document describes a **calibration-engineering prototype** built around the conceptual **GR4J** rainfall–runoff model. The goal is to demonstrate automated parameter exploration, explicit calibration/validation separation, GLUE-inspired behavioral-ensemble diagnostics, transparent uncertainty communication, and full reproducibility.
+Ce document décrit un **prototype d'ingénierie du calage** construit autour du modèle conceptuel pluie–débit **GR4J**. L'objectif est de démontrer l'exploration automatique de l'espace des paramètres, la séparation explicite calage / validation, un ensemble comportemental inspiré de l'approche GLUE, la communication transparente de l'incertitude et la reproductibilité complète.
 
-This is **not** an operational flood-forecasting or regulatory decision-support system.
+Il ne s'agit **pas** d'un système opérationnel de prévision de crue ni d'un outil réglementaire d'aide à la décision.
 
-## 2. Basin and data
+## 2. Bassin versant et données
 
-- **Station code:** H0203020
-- **Station name:** La Laignes à Molesme
-- **Basin area:** 615.0 km²
-- **Centroid:** (47.96178, 4.361)
-- **Analysis period:** 2010-01-01 → 2015-12-31
-- **Warm-up period:** 2010-01-01 → 2010-12-31
-- **Calibration period:** 2011-01-01 → 2013-12-31
-- **Validation period:** 2014-01-01 → 2015-12-31
-- **Discharge source:** Hub'Eau hydrometry API v2 (`obs_elab`, `QmnJ`, L/s)
-- **Precipitation / ET0 source:** Open-Meteo Historical Weather API (daily)
-- **Temporal resolution:** daily
-- **Timezone (meteo aggregation):** Europe/Paris
-- **Missing precipitation:** 0 days
-- **Missing ET0:** 0 days
-- **Missing discharge:** 0 days
-- **Usable observations (all variables present):** 2191 days
+- **Code station :** H0203020
+- **Nom de la station :** La Laignes à Molesme
+- **Surface du bassin versant :** 615.0 km²
+- **Centroïde :** (47.96178, 4.361)
+- **Période d'analyse :** 2010-01-01 → 2015-12-31
+- **Période de mise en route (warm-up) :** 2010-01-01 → 2010-12-31
+- **Période de calage :** 2011-01-01 → 2013-12-31
+- **Période de validation :** 2014-01-01 → 2015-12-31
+- **Source de débit :** API Hub'Eau hydrométrie v2 (`obs_elab`, `QmnJ`, L/s)
+- **Source précipitations / ET0 :** Open-Meteo Historical Weather API (journalière)
+- **Résolution temporelle :** journalière
+- **Fuseau horaire (agrégation météo) :** Europe/Paris
+- **Précipitations manquantes :** 0 jours
+- **ET0 manquante :** 0 jours
+- **Débit manquant :** 0 jours
+- **Observations exploitables (toutes variables présentes) :** 2191 jours
 
-Precipitation is represented by a single Open-Meteo point at the basin centroid and is not basin-averaged precipitation.
+Les précipitations sont représentées par un point Open-Meteo unique au centroïde du bassin versant ; il ne s'agit pas d'une précipitation moyenne de bassin.
 
-Discharge conversion: Q_mm/day = Q_L/s × 0.0864 / basin_area_km².
+Conversion du débit : Q_mm/j = Q_L/s × 0.0864 / basin_area_km².
 
-## 3. Hydrological model
+## 3. Modèle hydrologique
 
-**GR4J** (Perrin, Michel & Andréassian, 2003) — four-parameter conceptual model.
+**GR4J** (Perrin, Michel & Andréassian, 2003) — modèle conceptuel à quatre paramètres.
 
-GR4J is a conceptual model. Calibrated parameters must not automatically be interpreted as direct physical measurements of catchment properties.
+GR4J est un modèle conceptuel. Les paramètres calés ne doivent pas être interprétés automatiquement comme des mesures physiques directes des propriétés du bassin versant.
 
-| Parameter | Meaning | Unit | Demonstration bounds |
+| Paramètre | Signification | Unité | Bornes de démonstration |
 | --- | --- | --- | --- |
-| X1 | Production store capacity | mm | [100, 1200] |
-| X2 | Groundwater exchange flux | mm | [-5, 3] |
-| X3 | Routing store capacity | mm | [20, 300] |
-| X4 | Unit-hydrograph time base (UH1/UH2) | days | [1.1, 2.9] |
+| X1 | Capacité du réservoir de production | mm | [100, 1200] |
+| X2 | Flux d'échange souterrain | mm | [-5, 3] |
+| X3 | Capacité du réservoir de routage | mm | [20, 300] |
+| X4 | Base temporelle des hydrogrammes unitaires (UH1/UH2) | jours | [1.1, 2.9] |
 
-**Initial-state convention:** production store at 30% of X1, routing store at 50% of X3, empty unit-hydrograph stores (airGR default fractions).
-**Warm-up duration:** 365 days (2010-01-01 → 2010-12-31), excluded from all reported metrics.
-**Continuous-state behavior:** GR4J runs continuously from warm-up start through validation end without resetting states at period boundaries.
+**Convention d'état initial :** réservoir de production à 30 % de X1, réservoir de routage à 50 % de X3, stocks d'hydrogrammes unitaires vides (fractions par défaut airGR).
+**Durée de la période de mise en route (warm-up) :** 365 jours (2010-01-01 → 2010-12-31), exclue de toutes les métriques reportées.
+**Continuité des états :** GR4J s'exécute en continu du début de la période de mise en route (warm-up) jusqu'à la fin de la validation, sans réinitialisation des états aux frontières de période.
 
-## 4. Calibration experiment
+## 4. Expérience de calage
 
-- **Sampling method:** Latin Hypercube Sampling (latin_hypercube)
-- **N:** 5000
-- **Random seed:** 42
-- **Parameter bounds:** as in Section 3
-- **Ranking objective:** KGE_cal (calibration period only)
-- **Validation isolation rule:** validation metrics are diagnostic only
-- **Total runtime:** 898.59 s
-- **Mean runtime per evaluation:** 0.1797 s
+- **Méthode d'échantillonnage :** Latin Hypercube Sampling (latin_hypercube)
+- **N :** 5000
+- **Graine aléatoire :** 42
+- **Bornes des paramètres :** voir section 3
+- **Objectif de classement :** KGE_cal (période de calage uniquement)
+- **Règle d'isolement de la validation :** les métriques de validation sont purement diagnostiques
+- **Temps de calcul total :** 898.59 s
+- **Temps moyen par évaluation :** 0.1797 s
 
-Validation observations were not used for parameter sampling, ranking, parameter selection, stopping criteria, or behavioral-ensemble membership.
+Les données de validation ne sont utilisées ni pour l'échantillonnage, ni pour le classement, ni pour la sélection des paramètres.
 
-## 5. Uncalibrated baseline
+## 5. Référence non calée
 
-Fixed demonstration parameters (not manually tuned to observations): X1=350.0, X2=0.0, X3=90.0, X4=1.4.
+Paramètres de démonstration fixes (non ajustés manuellement aux observations) : X1=350.0, X2=0.0, X3=90.0, X4=1.4.
 
-| Metric | Calibration | Validation |
+| Métrique | Calage | Validation |
 | --- | ---: | ---: |
 | NSE | 0.4402 | 0.0600 |
 | KGE | 0.4731 | 0.2026 |
@@ -73,22 +73,22 @@ Fixed demonstration parameters (not manually tuned to observations): X1=350.0, X
 | alpha | 1.2594 | 1.5013 |
 | beta | 1.4403 | 1.6109 |
 | log-NSE | 0.6633 | 0.5791 |
-| Volume bias | 0.4403 | 0.6109 |
+| Biais volumique | 0.4403 | 0.6109 |
 
-## 6. Best calibration candidate
+## 6. Meilleur jeu de paramètres issu du calage
 
-- **Run ID:** 3058
-- **X1–X4:** 248.360, -3.368, 86.318, 2.699
+- **Identifiant d'exécution (run_id) :** 3058
+- **X1–X4 :** 248.360, -3.368, 86.318, 2.699
 
-**Calibration metrics:** NSE=0.8083, KGE=0.9027, r=0.9071, alpha=1.0269, beta=0.9897, log-NSE=0.7695, bias=-0.0103.
+**Métriques de calage :** NSE=0.8083, KGE=0.9027, r=0.9071, alpha=1.0269, beta=0.9897, log-NSE=0.7695, biais=-0.0103.
 
-**Validation metrics (diagnostic only):** NSE=0.7923, KGE=0.8350, r=0.9171, alpha=1.1295, beta=1.0597, log-NSE=0.8705, bias=0.0597.
+**Métriques de validation (diagnostiques uniquement) :** NSE=0.7923, KGE=0.8350, r=0.9171, alpha=1.1295, beta=1.0597, log-NSE=0.8705, biais=0.0597.
 
-**Bound proximity (within 2% of configured range):** none (all parameters >2% from configured bounds).
+**Proximité des bornes (à moins de 2 % de l'amplitude configurée) :** aucun (tous les paramètres à plus de 2 % des bornes configurées).
 
-## 7. Calibration vs validation
+## 7. Calage vs validation
 
-| Metric | Uncalibrated (cal) | Uncalibrated (val) | Best cal (cal) | Best cal (val) |
+| Métrique | Non calé (calage) | Non calé (validation) | Meilleur calage (calage) | Meilleur calage (validation) |
 | --- | ---: | ---: | ---: | ---: |
 | NSE | 0.4402 | 0.0600 | 0.8083 | 0.7923 |
 | KGE | 0.4731 | 0.2026 | 0.9027 | 0.8350 |
@@ -96,15 +96,15 @@ Fixed demonstration parameters (not manually tuned to observations): X1=350.0, X
 | alpha | 1.2594 | 1.5013 | 1.0269 | 1.1295 |
 | beta | 1.4403 | 1.6109 | 0.9897 | 1.0597 |
 | log-NSE | 0.6633 | 0.5791 | 0.7695 | 0.8705 |
-| volumetric bias | 0.4403 | 0.6109 | -0.0103 | 0.0597 |
+| Biais volumique | 0.4403 | 0.6109 | -0.0103 | 0.0597 |
 
-The best calibration candidate retains most of its calibration-period skill in validation (KGE_cal = 0.9027, KGE_val = 0.8350). This suggests reasonable split-sample generalization for this pilot basin, without claiming operational robustness.
+Le meilleur jeu de paramètres issu du calage conserve l'essentiel de sa performance de calage en validation (KGE_cal = 0.9027, KGE_val = 0.8350). Cela suggère une généralisation split-sample raisonnable pour ce bassin pilote, sans revendiquer une robustesse opérationnelle.
 
-## 8. Parameter-space diagnostics
+## 8. Diagnostics de l'espace des paramètres
 
-**KGE_cal distribution (N = 5000):** min=-3.9547, median=0.4862, p90=0.7080, p95=0.7609, p99=0.8450, max=0.9027.
+**Distribution de KGE_cal (N = 5000) :** min=-3.9547, médiane=0.4862, p90=0.7080, p95=0.7609, p99=0.8450, max=0.9027.
 
-**Threshold counts:**
+**Effectifs par seuil :**
 - kge_cal_gt_0.5: 2342
 - kge_cal_gt_0.6: 1271
 - kge_cal_gt_0.7: 540
@@ -112,61 +112,61 @@ The best calibration candidate retains most of its calibration-period skill in v
 - kge_cal_gt_0.8: 126
 - kge_cal_gt_0.85: 45
 
-**corr(KGE_cal, KGE_val):** 0.9529
+**corr(KGE_cal, KGE_val) :** 0.9529
 
-**Behavioral parameter ranges (KGE_cal > official threshold):**
+**Plages des paramètres comportementaux (KGE_cal > seuil officiel) :**
 
-| Parameter | min | median | max |
+| Paramètre | min | médiane | max |
 | --- | ---: | ---: | ---: |
 | X1 | 180.700 | 291.893 | 688.265 |
 | X2 | -4.997 | -3.104 | -0.571 |
 | X3 | 31.514 | 95.396 | 209.448 |
 | X4 | 1.117 | 1.996 | 2.897 |
 
-Multiple distinct parameter sets achieve similar calibration performance; therefore the highest-scoring parameter set should not be interpreted as a uniquely identified physical truth.
+**Équifinalité.** Plusieurs jeux de paramètres distincts atteignent des performances de calage similaires ; le jeu de plus haut score ne doit donc pas être interprété comme une vérité physique unique.
 
-**Weakly constrained parameters in the behavioral set:** X2, X3, X4.
+**Paramètres faiblement contraints dans l'ensemble comportemental :** X2, X3, X4.
 
-## 9. Behavioral ensemble
+## 9. Ensemble comportemental
 
-- **Method:** GLUE-inspired behavioral ensemble (not a complete GLUE implementation)
-- **Criterion:** KGE_cal > 0.8
-- **Ensemble size:** 126 members
-- **Criterion is configurable** and is **not** a universal hydrological acceptability threshold
-- **Validation does not affect membership**
+- **Méthode :** ensemble comportemental inspiré de l'approche GLUE (et non une implémentation complète de GLUE)
+- **Critère :** KGE_cal > 0.8
+- **Taille de l'ensemble :** 126 membres
+- **Le critère est configurable** et **n'est pas** un seuil d'acceptabilité hydrologique universel
+- **La validation n'intervient pas dans l'appartenance à l'ensemble**
 
-**q50 validation metrics (diagnostic):** NSE=0.7893, KGE=0.8342, r=0.9120, alpha=1.0860, beta=1.1111, log-NSE=0.8754, bias=0.1111.
+**Métriques de validation de q50 (diagnostiques) :** NSE=0.7893, KGE=0.8342, r=0.9120, alpha=1.0860, beta=1.1111, log-NSE=0.8754, biais=0.1111.
 
-## 10. Uncertainty diagnostics
+## 10. Diagnostics d'incertitude
 
-- **Empirical validation coverage of the behavioral envelope (q05–q95):** 59.9%
-- **Mean envelope width:** 0.2063 mm/d
-- **Median envelope width:** 0.1586 mm/d
-- **p90 envelope width:** 0.4023 mm/d
-- **Mean width / mean observed validation discharge:** 0.5086
+- **Couverture empirique de validation de l'enveloppe comportementale (q05–q95) :** 59.9%
+- **Largeur moyenne de l'enveloppe :** 0.2063 mm/j
+- **Largeur médiane de l'enveloppe :** 0.1586 mm/j
+- **Largeur p90 de l'enveloppe :** 0.4023 mm/j
+- **Largeur moyenne / débit observé moyen en validation :** 0.5086
 
-The q05–q95 envelope is the dispersion of the selected behavioral parameter simulations. It is not a calibrated 90% confidence or prediction interval.
+L'enveloppe q05–q95 est une enveloppe représentant uniquement l'incertitude paramétrique (dispersion des simulations comportementales retenues). Il ne s'agit ni d'un intervalle de confiance à 90 %, ni d'un intervalle de prédiction à 90 %, ni d'une probabilité de 90 %.
 
-The observed under-coverage demonstrates that parametric dispersion alone is insufficient to represent total predictive uncertainty.
+La sous-couverture empirique observée sur la période de validation est attendue, car les incertitudes sur les précipitations, sur les observations et sur la structure du modèle ne sont pas propagées dans ce prototype : la dispersion paramétrique seule ne suffit pas à représenter l'incertitude prédictive totale.
 
-The envelope explicitly excludes:
-- precipitation uncertainty
-- observation uncertainty
-- model-structure uncertainty
-- initial-state uncertainty
+L'enveloppe exclut explicitement :
+- l'incertitude sur les précipitations ;
+- l'incertitude observationnelle ;
+- l'incertitude de structure du modèle ;
+- l'incertitude d'état initial.
 
-**Threshold-sensitivity table (diagnostic; threshold not selected from validation):**
+**Tableau de sensibilité au seuil (diagnostique ; le seuil n'est pas choisi à partir de la validation) :**
 
-| KGE_cal > | Members | Validation envelope coverage |
+| KGE_cal > | Membres | Couverture empirique de validation |
 | --- | ---: | ---: |
 | 0.70 | 540 | 71.8% |
 | 0.75 | 280 | 67.1% |
 | 0.80 | 126 | 59.9% |
 | 0.85 | 45 | 47.1% |
 
-**q50 vs best-calibration validation comparison (diagnostic):**
+**Comparaison q50 vs meilleur calage en validation (diagnostique) :**
 
-| Metric | q50 | Best calibration |
+| Métrique | q50 | Meilleur calage |
 | --- | ---: | ---: |
 | nse | 0.7893 | 0.7923 |
 | kge | 0.8342 | 0.8350 |
@@ -176,11 +176,11 @@ The envelope explicitly excludes:
 | lognse | 0.8754 | 0.8705 |
 | bias | 0.1111 | 0.0597 |
 
-## 11. Hydrological-period characterization
+## 11. Caractérisation hydrologique des périodes
 
-### Annual summary (2010–2015)
+### Synthèse annuelle (2010–2015)
 
-| Year | Precip (mm) | Q depth (mm) | Runoff ratio | Mean Q (mm/d) | Max Q (mm/d) |
+| Année | Précipitations (mm) | Lame d'eau Q (mm) | Coefficient d'écoulement | Q moyen (mm/j) | Q max (mm/j) |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | 2010 | 903.5 | 142.0 | 0.1572 | 0.3891 | 3.4588 |
 | 2011 | 712.3 | 113.7 | 0.1596 | 0.3115 | 3.1396 |
@@ -189,38 +189,38 @@ The envelope explicitly excludes:
 | 2014 | 840.6 | 147.7 | 0.1757 | 0.4046 | 1.3578 |
 | 2015 | 724.6 | 148.4 | 0.2048 | 0.4065 | 2.7543 |
 
-### Calibration vs validation aggregates
+### Agrégats calage vs validation
 
-| Period aggregate | Precip (mm) | Q depth (mm) | Runoff ratio | Mean Q (mm/d) | Max Q (mm/d) |
+| Agrégat de période | Précipitations (mm) | Lame d'eau Q (mm) | Coefficient d'écoulement | Q moyen (mm/j) | Q max (mm/j) |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| calibration | 2613.0 | 612.9 | 0.2346 | 0.5592 | 3.5026 |
+| calage | 2613.0 | 612.9 | 0.2346 | 0.5592 | 3.5026 |
 | validation | 1565.2 | 296.1 | 0.1892 | 0.4056 | 2.7543 |
 
-Note: 2014 shows a lower annual maximum daily discharge than neighbouring years in this dataset; this is reported as a diagnostic observation requiring investigation, not as a definitive anomaly label.
+Note : l'année 2014 présente un maximum journalier de débit observé plus bas que les années voisines dans ce jeu de données ; cette observation est rapportée à titre diagnostique et nécessite investigation, sans être qualifiée d'anomalie définitive.
 
-## 12. Limitations
+## 12. Limites
 
-- Daily temporal resolution only
-- Centroid precipitation instead of basin-average precipitation
-- Conceptual lumped model rather than a physically distributed representation
-- No precipitation ensemble
-- No rating-curve uncertainty propagation
-- No state assimilation
-- Parametric uncertainty only in the reported envelope
-- Behavioral threshold is prototype-specific and configurable
-- Single pilot basin (one station configuration)
+- Résolution temporelle journalière uniquement
+- Précipitations au centroïde plutôt qu'une précipitation moyenne de bassin
+- Modèle conceptuel global plutôt qu'une représentation physique distribuée
+- Pas d'ensemble de précipitations
+- Pas de propagation d'incertitude de courbe de tarage
+- Pas d'assimilation d'état
+- Incertitude paramétrique seule dans l'enveloppe reportée
+- Seuil comportemental spécifique au prototype et configurable
+- Un seul bassin versant pilote (une configuration de station)
 
-## 13. Reproducibility
+## 13. Reproductibilité
 
-- **Generated at (UTC):** 2026-08-24T08:05:48Z
-- **Configuration SHA256:** `8b0f60d562d633a7b8a23eec414e91d022b665f1d3c9f774c5f6fc13c39b1645`
-- **Git commit:** 9ae2797fff857406a61d63e4c24eb31a2fed675b
-- **Python version:** 3.14.0
-- **Model / prototype version:** gr4j-prototype-v0.1
-- **Random seed:** 42
-- **N simulations:** 5000
+- **Généré le (UTC) :** 2026-08-25T16:05:55Z
+- **SHA256 de la configuration :** `0b093d57f547f99b6ba191ad1903ccb368d62ed77bd202028c4b6e06f4ef7353`
+- **Commit Git :** 66919b5dc13cbf504189fb46bcd9679752c35b55
+- **Version Python :** 3.14.0
+- **Version modèle / prototype :** gr4j-prototype-v0.1
+- **Graine aléatoire :** 42
+- **N simulations :** 5000
 
-**Package versions:**
+**Versions des paquets :**
 - python: 3.14.0
 - numpy: 2.3.5
 - pandas: 2.3.3
@@ -228,20 +228,20 @@ Note: 2014 shows a lower annual maximum daily discharge than neighbouring years 
 - PyYAML: 6.0.3
 - pytest: 8.4.2
 
-## 14. Artifacts
+## 14. Artéfacts
 
-- `output\data\basin_daily.csv` — processed daily data
-- `output\runs.csv` — 5000 calibration experiments
-- `output\top20_calibration.csv` — top calibration candidates
-- `output\behavioral_runs.csv` — behavioral ensemble members
-- `output\ensemble_timeseries.csv` — ensemble quantile time series
-- `output\ensemble_validation.png` — validation uncertainty figure
-- `output\ensemble_full_validation.png` — full validation diagnostic
-- `output\parameter_space_diagnostic.png` — parameter-space diagnostic
-- `output\hydrological_years.png` — hydrological characterization figure
+- `output\data\basin_daily.csv` — données journalières traitées
+- `output\runs.csv` — 5000 expériences de calage
+- `output\top20_calibration.csv` — meilleurs candidats de calage
+- `output\behavioral_runs.csv` — jeux de paramètres comportementaux
+- `output\ensemble_timeseries.csv` — séries temporelles des quantiles d'ensemble
+- `output\ensemble_validation.png` — figure d'incertitude en validation
+- `output\ensemble_full_validation.png` — diagnostic de validation complète
+- `output\parameter_space_diagnostic.png` — diagnostic de l'espace des paramètres
+- `output\hydrological_years.png` — figure de caractérisation hydrologique
 
-## 15. Decision banner
+## 15. Bannière de décision
 
-**STATUS: PROTOTYPE / NOT FOR OPERATIONAL HYDROLOGICAL DECISION-MAKING**
+**STATUT : PROTOTYPE / NON DESTINÉ À LA DÉCISION HYDROLOGIQUE OPÉRATIONNELLE**
 
-This prototype must not be interpreted as regulatory, forecasting, or operational hydrological validation.
+Ce prototype ne doit pas être interprété comme une validation réglementaire, une prévision ou une validation hydrologique opérationnelle.

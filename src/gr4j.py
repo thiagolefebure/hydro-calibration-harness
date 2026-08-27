@@ -237,7 +237,14 @@ def run_gr4j(
     inputs: pd.DataFrame,
     params: GR4JParameters,
     initial_state: GR4JState | None = None,
-) -> tuple[pd.Series, GR4JState]:
+    *,
+    return_states: bool = False,
+    return_full_states: bool = False,
+) -> (
+    tuple[pd.Series, GR4JState]
+    | tuple[pd.Series, GR4JState, pd.DataFrame]
+    | tuple[pd.Series, GR4JState, list[GR4JState]]
+):
     """Run GR4J forward over daily precipitation and PET inputs.
 
     Parameters
@@ -249,6 +256,15 @@ def run_gr4j(
         GR4J parameter set. Bounds are not enforced here.
     initial_state:
         Optional starting state. Defaults to airGR fractions (30 % X1, 50 % X3).
+    return_states:
+        If True, also return a daily diagnostic DataFrame with end-of-step
+        ``production_store`` and ``routing_store`` [mm]. Default False preserves
+        the historical two-value return signature and does not change equations.
+    return_full_states:
+        If True (and ``return_states`` is False), also return a list of full
+        end-of-step ``GR4JState`` snapshots (including UH stores) for restart
+        experiments. Mutually exclusive with ``return_states``. Equations and
+        default return signature are unchanged.
 
     Returns
     -------
@@ -256,7 +272,13 @@ def run_gr4j(
         Simulated daily discharge [mm/day], indexed like ``inputs``.
     final_state:
         Model state after the last time step (for continuous simulations).
+    state_timeseries / full_states (optional):
+        Store DataFrame when ``return_states=True``, or full state list when
+        ``return_full_states=True``.
     """
+    if return_states and return_full_states:
+        raise ValueError("return_states and return_full_states are mutually exclusive")
+
     required = {"precipitation_mm", "et0_mm"}
     missing = required - set(inputs.columns)
     if missing:
@@ -268,7 +290,12 @@ def run_gr4j(
     state = default_initial_state(params) if initial_state is None else initial_state.copy()
     ord_uh1, ord_uh2 = unit_hydrograph_ordinates(params.X4)
 
-    discharge = np.empty(len(inputs), dtype=float)
+    n = len(inputs)
+    discharge = np.empty(n, dtype=float)
+    production = np.empty(n, dtype=float) if return_states else None
+    routing = np.empty(n, dtype=float) if return_states else None
+    full_states: list[GR4JState] | None = [] if return_full_states else None
+
     for i, (_, row) in enumerate(inputs.iterrows()):
         q, state = step_gr4j(
             precipitation_mm=row["precipitation_mm"],
@@ -279,9 +306,29 @@ def run_gr4j(
             ord_uh2=ord_uh2,
         )
         discharge[i] = q
+        if return_states:
+            assert production is not None and routing is not None
+            production[i] = state.production_store
+            routing[i] = state.routing_store
+        if return_full_states:
+            assert full_states is not None
+            full_states.append(state.copy())
 
     series = pd.Series(discharge, index=inputs.index, name="discharge_mm")
-    return series, state
+    if return_full_states:
+        assert full_states is not None
+        return series, state, full_states
+    if not return_states:
+        return series, state
+
+    states_df = pd.DataFrame(
+        {
+            "production_store": production,
+            "routing_store": routing,
+        },
+        index=inputs.index,
+    )
+    return series, state, states_df
 
 
 def run_gr4j_continuous_periods(
@@ -289,7 +336,14 @@ def run_gr4j_continuous_periods(
     params: GR4JParameters,
     period_bounds: dict[str, tuple[str, str]] | None = None,
     initial_state: GR4JState | None = None,
-) -> tuple[pd.Series, GR4JState]:
+    *,
+    return_states: bool = False,
+    return_full_states: bool = False,
+) -> (
+    tuple[pd.Series, GR4JState]
+    | tuple[pd.Series, GR4JState, pd.DataFrame]
+    | tuple[pd.Series, GR4JState, list[GR4JState]]
+):
     """Run one continuous GR4J simulation over all inputs.
 
     Period boundaries (warmup / calibration / validation) do not reset model
@@ -297,4 +351,10 @@ def run_gr4j_continuous_periods(
     not alter the continuous simulation (spec §2).
     """
     _ = period_bounds
-    return run_gr4j(inputs, params, initial_state=initial_state)
+    return run_gr4j(
+        inputs,
+        params,
+        initial_state=initial_state,
+        return_states=return_states,
+        return_full_states=return_full_states,
+    )

@@ -12,7 +12,9 @@ from src.metrics import (
     kge,
     kge_components,
     log_nse,
+    mae,
     nse,
+    rmse,
     volume_bias,
 )
 
@@ -29,6 +31,8 @@ def test_perfect_simulation_metrics() -> None:
     assert beta_val.value == pytest.approx(1.0)
     assert log_nse(obs, sim).value == pytest.approx(1.0)
     assert volume_bias(obs, sim).value == pytest.approx(0.0)
+    assert mae(obs, sim).value == pytest.approx(0.0)
+    assert rmse(obs, sim).value == pytest.approx(0.0)
 
 
 def test_biased_simulation() -> None:

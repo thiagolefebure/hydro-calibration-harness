@@ -108,6 +108,36 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Export static interview demo assets from existing artifacts (no recalibration)",
     )
+    parser.add_argument(
+        "--build-ml-dataset",
+        action="store_true",
+        help="Build residual-correction ML dataset from best-calibration GR4J (Phase 8A)",
+    )
+    parser.add_argument(
+        "--train-ml-baselines",
+        action="store_true",
+        help="Train residual ML baselines on calibration and evaluate on validation (Phase 8B)",
+    )
+    parser.add_argument(
+        "--ml-ablation",
+        action="store_true",
+        help="Residual-correction robustness and ablation analysis (Phase 8C)",
+    )
+    parser.add_argument(
+        "--ml-horizon-forecast",
+        action="store_true",
+        help="True multi-horizon residual forecasting under oracle weather (Phase 8D)",
+    )
+    parser.add_argument(
+        "--meteo-sensitivity",
+        action="store_true",
+        help="Synthetic meteorological forcing sensitivity for +24/+48/+72 h (Phase 8E)",
+    )
+    parser.add_argument(
+        "--uncertainty-calibration",
+        action="store_true",
+        help="Calibrate and evaluate forecast intervals for +24/+48/+72 h (Phase 9)",
+    )
     return parser.parse_args(argv)
 
 
@@ -343,6 +373,128 @@ def run_demo_stage(args: argparse.Namespace, config_path: Path) -> dict[str, Pat
     return paths
 
 
+def run_ml_dataset_stage(args: argparse.Namespace, config: dict):
+    from src.experiment_data import load_experiment_data
+    from src.ml_residual_dataset import (
+        print_ml_residual_dataset_report,
+        run_ml_residual_dataset_export,
+    )
+
+    runs_path = args.output_dir / "runs.csv"
+    processed_path = args.output_dir / "data" / "basin_daily.csv"
+    if not runs_path.is_file():
+        raise FileNotFoundError(f"runs.csv not found: {runs_path}")
+    runs = pd.read_csv(runs_path)
+    data = load_experiment_data(
+        config,
+        cache_dir=args.cache_dir,
+        processed_path=processed_path,
+        timezone=args.meteo_timezone if args.meteo_timezone is not None else get_meteo_timezone(config),
+    )
+    result = run_ml_residual_dataset_export(data, config, runs, args.output_dir)
+    print_ml_residual_dataset_report(result)
+    return result
+
+
+def run_ml_baselines_stage(args: argparse.Namespace, config: dict):
+    from src.ml_residual_baselines import (
+        print_ml_residual_baselines_report,
+        run_ml_residual_baselines_export,
+    )
+
+    dataset_path = args.output_dir / "ml_residual_dataset.csv"
+    if not dataset_path.is_file():
+        raise FileNotFoundError(
+            f"ml_residual_dataset.csv not found: {dataset_path} "
+            "(run --build-ml-dataset first)"
+        )
+    result = run_ml_residual_baselines_export(
+        dataset_path,
+        args.output_dir,
+        config=config,
+    )
+    print_ml_residual_baselines_report(result)
+    return result
+
+
+def run_ml_ablation_stage(args: argparse.Namespace, config: dict):
+    from src.ml_residual_ablation import print_ml_ablation_report, run_ml_ablation_export
+
+    dataset_path = args.output_dir / "ml_residual_dataset.csv"
+    if not dataset_path.is_file():
+        raise FileNotFoundError(
+            f"ml_residual_dataset.csv not found: {dataset_path} "
+            "(run --build-ml-dataset first)"
+        )
+    result = run_ml_ablation_export(dataset_path, args.output_dir, config=config)
+    print_ml_ablation_report(result)
+    return result
+
+
+def run_ml_horizon_stage(args: argparse.Namespace, config: dict):
+    from src.ml_horizon_forecast import print_ml_horizon_report, run_ml_horizon_export
+
+    dataset_path = args.output_dir / "ml_residual_dataset.csv"
+    if not dataset_path.is_file():
+        raise FileNotFoundError(
+            f"ml_residual_dataset.csv not found: {dataset_path} "
+            "(run --build-ml-dataset first)"
+        )
+    result = run_ml_horizon_export(dataset_path, args.output_dir, config=config)
+    print_ml_horizon_report(result)
+    return result
+
+
+def run_meteo_sensitivity_stage(args: argparse.Namespace, config: dict):
+    from src.meteo_sensitivity import print_meteo_sensitivity_report, run_meteo_sensitivity_export
+
+    dataset_path = args.output_dir / "ml_residual_dataset.csv"
+    basin_path = args.output_dir / "data" / "basin_daily.csv"
+    runs_path = args.output_dir / "runs.csv"
+    missing = [
+        str(p)
+        for p in (dataset_path, basin_path, runs_path)
+        if not p.is_file()
+    ]
+    if missing:
+        raise FileNotFoundError(f"missing artifacts: {', '.join(missing)}")
+    result = run_meteo_sensitivity_export(
+        dataset_path=dataset_path,
+        basin_data_path=basin_path,
+        runs_path=runs_path,
+        output_dir=args.output_dir,
+        config=config,
+    )
+    print_meteo_sensitivity_report(result)
+    return result
+
+
+def run_uncertainty_stage(args: argparse.Namespace, config: dict):
+    from src.uncertainty_calibration import print_uncertainty_report, run_uncertainty_export
+
+    dataset_path = args.output_dir / "ml_residual_dataset.csv"
+    basin_path = args.output_dir / "data" / "basin_daily.csv"
+    runs_path = args.output_dir / "runs.csv"
+    ensemble_path = args.output_dir / "ensemble_timeseries.csv"
+    missing = [
+        str(p)
+        for p in (dataset_path, basin_path, runs_path, ensemble_path)
+        if not p.is_file()
+    ]
+    if missing:
+        raise FileNotFoundError(f"missing artifacts: {', '.join(missing)}")
+    result = run_uncertainty_export(
+        dataset_path=dataset_path,
+        basin_data_path=basin_path,
+        runs_path=runs_path,
+        ensemble_path=ensemble_path,
+        output_dir=args.output_dir,
+        config=config,
+    )
+    print_uncertainty_report(result)
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     config_path = args.config.resolve()
@@ -446,6 +598,54 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Open file:      {(demo_dir / 'index.html').resolve()}")
         print("Or serve:        python -m http.server 8000")
         print("Then open:       http://localhost:8000/demo/")
+        return 0
+
+    if args.build_ml_dataset:
+        try:
+            run_ml_dataset_stage(args, config)
+        except Exception as exc:
+            print(f"ML residual dataset build failed: {exc}", file=sys.stderr)
+            return 1
+        return 0
+
+    if args.train_ml_baselines:
+        try:
+            run_ml_baselines_stage(args, config)
+        except Exception as exc:
+            print(f"ML residual baselines failed: {exc}", file=sys.stderr)
+            return 1
+        return 0
+
+    if args.ml_ablation:
+        try:
+            run_ml_ablation_stage(args, config)
+        except Exception as exc:
+            print(f"ML ablation analysis failed: {exc}", file=sys.stderr)
+            return 1
+        return 0
+
+    if args.ml_horizon_forecast:
+        try:
+            run_ml_horizon_stage(args, config)
+        except Exception as exc:
+            print(f"ML horizon forecast failed: {exc}", file=sys.stderr)
+            return 1
+        return 0
+
+    if args.meteo_sensitivity:
+        try:
+            run_meteo_sensitivity_stage(args, config)
+        except Exception as exc:
+            print(f"Meteo sensitivity analysis failed: {exc}", file=sys.stderr)
+            return 1
+        return 0
+
+    if args.uncertainty_calibration:
+        try:
+            run_uncertainty_stage(args, config)
+        except Exception as exc:
+            print(f"Uncertainty calibration failed: {exc}", file=sys.stderr)
+            return 1
         return 0
 
     if args.all:

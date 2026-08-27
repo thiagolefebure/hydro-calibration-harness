@@ -34,6 +34,35 @@ calibration:
 metrics:
   log_nse_epsilon_mm: 0.01
 
+# Phase 8E — synthetic meteorological forcing sensitivity (NOT a weather-forecast benchmark).
+# Parameters are architectural controls only; they are never tuned to hydrological metrics.
+meteo_sensitivity:
+  n_realizations: 100
+  seed: 42
+  wet_day_threshold_mm: 1.0
+  moderate:
+    magnitude_lognormal_sigma: 0.20
+    timing_shift_probability: 0.10
+    miss_probability: 0.05
+    miss_factor: 0.20
+    false_alarm_probability: 0.05
+    false_alarm_mm: 1.5
+  strong:
+    magnitude_lognormal_sigma: 0.40
+    timing_shift_probability: 0.25
+    miss_probability: 0.15
+    miss_factor: 0.10
+    false_alarm_probability: 0.12
+    false_alarm_mm: 3.0
+
+# Phase 9 — forecast uncertainty calibration (pre-validation fitting only).
+uncertainty:
+  train_fraction: 0.75
+  rolling_coverage_window_days: 60
+  top_n_extreme_events: 10
+  moderate_realization: 0
+  meteo_scenarios: ["oracle", "moderate"]
+
 # Optional presentation metadata for the static interview demo.
 # If unset, `python run.py --export-demo` uses the detected git origin URL when available.
 demo:

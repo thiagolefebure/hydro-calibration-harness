@@ -150,7 +150,8 @@ def test_report_generated_from_outputs(
     path = generate_rapport_calage(report_config_path, report_fixture_dir)
     assert path.is_file()
     text = path.read_text(encoding="utf-8")
-    assert "# Automated Rainfall–Runoff Calibration Report" in text
+    assert "# Rapport de calage pluie–débit automatisé" in text
+    assert "Rapport de calage" in text
 
 
 def test_report_contains_required_sections(
@@ -160,16 +161,45 @@ def test_report_contains_required_sections(
         encoding="utf-8"
     )
     for heading in (
-        "## 1. Prototype scope",
-        "## 2. Basin and data",
-        "## 3. Hydrological model",
-        "## 4. Calibration experiment",
-        "## 12. Limitations",
-        "## 13. Reproducibility",
-        "## 14. Artifacts",
+        "## 1. Périmètre du prototype",
+        "## 2. Bassin versant et données",
+        "## 3. Modèle hydrologique",
+        "## 4. Expérience de calage",
+        "## 12. Limites",
+        "## 13. Reproductibilité",
+        "## 14. Artéfacts",
         STATUS_BANNER,
     ):
         assert heading in text
+    for phrase in (
+        "Rapport de calage",
+        "Période de calage",
+        "Période de validation",
+        "Ensemble comportemental",
+        "Incertitude paramétrique",
+        "Équifinalité",
+        "Limites",
+        "Reproductibilité",
+    ):
+        assert phrase in text
+
+
+def test_english_section_headings_absent(
+    report_fixture_dir: Path, report_config_path: Path
+) -> None:
+    text = generate_rapport_calage(report_config_path, report_fixture_dir).read_text(
+        encoding="utf-8"
+    )
+    for english_heading in (
+        "# Automated Rainfall–Runoff Calibration Report",
+        "## 1. Prototype scope",
+        "## 2. Basin and data",
+        "## 4. Calibration experiment",
+        "## 9. Behavioral ensemble",
+        "## 12. Limitations",
+        "## 13. Reproducibility",
+    ):
+        assert english_heading not in text
 
 
 def test_validation_isolation_statement_present(
@@ -179,6 +209,9 @@ def test_validation_isolation_statement_present(
         encoding="utf-8"
     )
     assert VALIDATION_ISOLATION_STATEMENT in text
+    assert "ni pour l'échantillonnage" in text
+    assert "ni pour le classement" in text
+    assert "ni pour la sélection des paramètres" in text
 
 
 def test_uncertainty_limitation_statement_present(
@@ -188,8 +221,10 @@ def test_uncertainty_limitation_statement_present(
         encoding="utf-8"
     )
     assert UNCERTAINTY_ENVELOPE_STATEMENT in text
-    assert "not a calibrated 90% confidence" in text
-    assert "parametric dispersion alone is insufficient" in text
+    assert "incertitude paramétrique" in text.lower()
+    assert "intervalle de confiance à 90 %" in text
+    assert "intervalle de prédiction à 90 %" in text
+    assert "sous-couverture empirique" in text
 
 
 def test_report_does_not_label_envelope_as_confidence_interval(
@@ -199,9 +234,15 @@ def test_report_does_not_label_envelope_as_confidence_interval(
         encoding="utf-8"
     )
     assert not re.search(r"90%\s+(confidence|prediction)\s+interval", text, re.I)
-    forbidden = ["calibrated 90% probability interval", "90% probability interval"]
+    forbidden = [
+        "calibrated 90% probability interval",
+        "90% probability interval",
+        "intervalle de confiance calibré à 90 %",
+    ]
     for phrase in forbidden:
         assert phrase not in text
+    # Explicit denial must remain present
+    assert "ni d'un intervalle de confiance à 90 %" in text
 
 
 def test_config_hash_reproducible(report_config_path: Path) -> None:
@@ -231,3 +272,13 @@ def test_report_source_has_no_hardcoded_pilot_metrics() -> None:
     )
     for token in ("0.8987", "0.9027", "3058", "59.9", "126"):
         assert token not in source
+
+
+def test_glue_inspired_french_wording(
+    report_fixture_dir: Path, report_config_path: Path
+) -> None:
+    text = generate_rapport_calage(report_config_path, report_fixture_dir).read_text(
+        encoding="utf-8"
+    )
+    assert "ensemble comportemental inspiré de l'approche GLUE" in text
+    assert "implémentation complète de GLUE" in text

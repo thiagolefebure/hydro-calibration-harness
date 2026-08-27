@@ -1,80 +1,84 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Automated Rainfall–Runoff Calibration</title>
+  <title>Calage automatisé d'un modèle pluie-débit</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="page">
     <header class="hero">
-      <div class="badge" id="prototype-badge">PROTOTYPE — NOT FOR OPERATIONAL DECISION-MAKING</div>
-      <h1 id="page-title">Automated Rainfall–Runoff Calibration</h1>
+      <div class="badge" id="prototype-badge">PROTOTYPE — NON DESTINÉ À LA DÉCISION HYDROLOGIQUE OPÉRATIONNELLE</div>
+      <h1 id="page-title">Calage automatisé d'un modèle pluie-débit</h1>
       <p class="subtitle" id="page-subtitle">
-        Prototype of a reproducible calibration harness for hydrological models
+        Prototype d'un harnais reproductible de calage de modèles hydrologiques
       </p>
       <p class="secondary" id="secondary-line">
-        Real hydrometric data · constrained parameter exploration · independent validation · explicit uncertainty
+        Données hydrométriques réelles · exploration des paramètres sous contraintes · validation indépendante · incertitude explicite
       </p>
     </header>
 
-    <section class="basin-context" aria-label="Basin context">
+    <section class="basin-context" aria-label="Contexte du bassin">
       <div class="meta-grid">
-        <div><span class="label">Pilot basin</span><strong id="basin-name">—</strong></div>
+        <div><span class="label">Bassin pilote</span><strong id="basin-name">—</strong></div>
         <div><span class="label">Station</span><strong id="station-code">—</strong></div>
-        <div><span class="label">Catchment area</span><strong id="basin-area">—</strong></div>
-        <div><span class="label">Data period</span><strong id="data-period">—</strong></div>
-        <div><span class="label">Temporal resolution</span><strong id="temporal-resolution">—</strong></div>
-        <div><span class="label">Model</span><strong id="model-label">—</strong></div>
+        <div><span class="label">Surface du bassin</span><strong id="basin-area">—</strong></div>
+        <div><span class="label">Période de données</span><strong id="data-period">—</strong></div>
+        <div><span class="label">Résolution temporelle</span><strong id="temporal-resolution">—</strong></div>
+        <div><span class="label">Modèle</span><strong id="model-label">—</strong></div>
       </div>
     </section>
 
-    <section class="kpi-row" aria-label="Key results">
+    <section class="kpi-row" aria-label="Résultats clés">
       <article class="kpi-card">
-        <h2>Parameter sets explored</h2>
+        <h2>Jeux de paramètres explorés</h2>
         <p class="kpi-value" id="kpi-samples">—</p>
-        <p class="kpi-caption">Latin Hypercube sampling</p>
+        <p class="kpi-caption">Échantillonnage Latin Hypercube (LHS)</p>
       </article>
       <article class="kpi-card">
-        <h2>Validation KGE</h2>
+        <h2>KGE en validation</h2>
         <p class="kpi-value" id="kpi-kge">—</p>
-        <p class="kpi-caption">uncalibrated → automatically calibrated</p>
+        <p class="kpi-caption">non calé → calé automatiquement</p>
       </article>
       <article class="kpi-card">
-        <h2>Validation volume bias</h2>
+        <h2>Biais volumique en validation</h2>
         <p class="kpi-value" id="kpi-bias">—</p>
-        <p class="kpi-caption">uncalibrated → calibrated</p>
+        <p class="kpi-caption">non calé → calé</p>
       </article>
       <article class="kpi-card">
-        <h2>Behavioral models</h2>
+        <h2>Modèles comportementaux</h2>
         <p class="kpi-value" id="kpi-behavioral">—</p>
         <p class="kpi-caption" id="kpi-behavioral-caption">KGE_cal &gt; —</p>
       </article>
     </section>
 
-    <section class="story" aria-label="Main results">
+    <section class="story" aria-label="Résultats principaux">
       <div class="tabs" role="tablist">
-        <button class="tab active" data-tab="calibration" role="tab" aria-selected="true">Calibration</button>
+        <button class="tab active" data-tab="calibration" role="tab" aria-selected="true">Calage</button>
         <button class="tab" data-tab="validation" role="tab" aria-selected="false">Validation</button>
-        <button class="tab" data-tab="uncertainty" role="tab" aria-selected="false">Uncertainty</button>
+        <button class="tab" data-tab="ml-correction" role="tab" aria-selected="false">Correction pilotée par les données</button>
+        <button class="tab" data-tab="forecast-horizons" role="tab" aria-selected="false">Prévision à 24–72 h</button>
+        <button class="tab" data-tab="meteo-sensitivity" role="tab" aria-selected="false">Sensibilité au forçage météorologique</button>
+        <button class="tab" data-tab="uncertainty" role="tab" aria-selected="false">Incertitude</button>
+        <button class="tab" data-tab="forecast-uncertainty" role="tab" aria-selected="false">Incertitude de prévision</button>
       </div>
 
       <div class="tab-panel active" id="panel-calibration" role="tabpanel">
         <div class="panel-grid">
           <figure>
-            <img id="fig-calibration" alt="Calibration impact on validation hydrograph" />
+            <img id="fig-calibration" alt="Impact du calage sur l'hydrogramme de validation" />
           </figure>
           <div class="panel-copy">
             <p>
-              An uncalibrated GR4J model is used as the baseline. The harness explores
-              constrained parameter sets automatically and selects candidates using
-              calibration performance only.
+              Un modèle GR4J non calé sert de référence. Le harnais explore
+              automatiquement des jeux de paramètres sous contraintes et sélectionne
+              les candidats uniquement selon la performance en calage.
             </p>
             <ul>
-              <li id="bullet-samples">— parameter sets explored</li>
-              <li>parameter bounds externalized in configuration</li>
-              <li>no manual tuning of the baseline</li>
+              <li id="bullet-samples">— jeux de paramètres explorés</li>
+              <li>bornes des paramètres externalisées dans la configuration</li>
+              <li>aucun réglage manuel de la référence</li>
             </ul>
           </div>
         </div>
@@ -83,21 +87,359 @@
       <div class="tab-panel" id="panel-validation" role="tabpanel" hidden>
         <div class="panel-grid">
           <figure>
-            <img id="fig-validation" alt="Calibration versus independent validation metrics" />
+            <img id="fig-validation" alt="Métriques de calage versus validation indépendante" />
           </figure>
           <div class="panel-copy">
             <p class="callout" id="validation-isolation">
-              Validation observations are never used for parameter fitting or ranking.
+              Les observations de validation ne sont jamais utilisées pour le calage ni pour le classement des paramètres.
             </p>
             <ul>
-              <li id="bullet-cal-period">calibration: —</li>
-              <li id="bullet-val-period">validation: —</li>
-              <li>model states remain continuous across the period boundary</li>
+              <li id="bullet-cal-period">calage : —</li>
+              <li id="bullet-val-period">validation : —</li>
+              <li>les états du modèle restent continus à la frontière de période</li>
             </ul>
             <p class="highlight">
-              Good calibration performance is not accepted as sufficient evidence of model
-              quality.
+              Une bonne performance en calage n'est pas acceptée comme preuve
+              suffisante de la qualité du modèle.
             </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-ml-correction" role="tabpanel" hidden>
+        <div class="ml-section" id="ml-correction">
+          <header class="ml-header">
+            <div>
+              <p class="ml-kicker" id="ml-methodology-label">Période de validation · aucun réglage sur la validation</p>
+              <h2 id="ml-section-title">CORRECTION PILOTÉE PAR LES DONNÉES</h2>
+              <p class="ml-subtitle" id="ml-section-subtitle">
+                Une correction statistique peut-elle améliorer un modèle physique calé ?
+              </p>
+            </div>
+            <ol class="ml-pipeline" id="ml-pipeline" aria-label="Séquence méthodologique"></ol>
+          </header>
+
+          <p class="ml-scope-note" id="ml-scope-note">
+            Expérience de correction résiduelle — la performance opérationnelle de
+            prévision dépend de l'horizon et du forçage météorologique.
+          </p>
+
+          <div class="ml-grid">
+            <div class="ml-primary">
+              <h3 class="ml-block-title">Comparaison du KGE en validation</h3>
+              <div class="ml-bars" id="ml-kge-bars" role="img" aria-label="KGE en validation par modèle"></div>
+              <p class="ml-axis-note">Axe : KGE en validation sur une échelle 0–1 (sans zoom sur le haut de l'échelle).</p>
+
+              <div class="ml-kpi">
+                <p class="ml-kpi-value" id="ml-gain-pct">—</p>
+                <p class="ml-kpi-label" id="ml-gain-label">—</p>
+              </div>
+
+              <div class="ml-steps" id="ml-explanation">
+                <article>
+                  <h4 id="ml-exp-physical-title">1 — MODÈLE PHYSIQUE</h4>
+                  <p id="ml-exp-physical-body">—</p>
+                </article>
+                <article>
+                  <h4 id="ml-exp-residual-title">2 — RÉSIDU</h4>
+                  <p class="ml-equation" id="ml-exp-residual-eq">—</p>
+                  <p id="ml-exp-residual-body">—</p>
+                </article>
+                <article>
+                  <h4 id="ml-exp-correction-title">3 — CORRECTION PILOTÉE PAR LES DONNÉES</h4>
+                  <p id="ml-exp-correction-body">—</p>
+                  <p class="ml-equation" id="ml-exp-correction-eq">—</p>
+                </article>
+              </div>
+            </div>
+
+            <aside class="ml-side">
+              <div class="ml-acf">
+                <h3 id="ml-acf-title">Autocorrélation du résidu</h3>
+                <div class="ml-acf-bars" id="ml-acf-bars"></div>
+                <p class="ml-acf-caption" id="ml-acf-caption">L'erreur du modèle physique a une mémoire.</p>
+              </div>
+
+              <div class="ml-decision">
+                <article class="ml-card result">
+                  <h3 id="ml-result-heading">Résultat</h3>
+                  <p id="ml-result-body">—</p>
+                </article>
+                <article class="ml-card decision">
+                  <h3 id="ml-decision-heading">Décision d'ingénierie</h3>
+                  <p id="ml-decision-body">—</p>
+                </article>
+              </div>
+
+              <div class="ml-arch">
+                <h3>Architecture</h3>
+                <div class="ml-arch-diagram" aria-hidden="true">
+                  <div class="ml-arch-node">Modèle physique <strong>GR4J</strong></div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node">Prévision physique</div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node">Erreur résiduelle</div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node accent" id="ml-residual-layer-label">
+                    Correction pilotée par les données<br /><small>Couche statistique / ML simple</small>
+                  </div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node strong">Prévision hybride</div>
+                </div>
+                <p class="ml-arch-caption" id="ml-arch-caption">—</p>
+              </div>
+
+              <div class="ml-guardrails">
+                <h3>Garde-fous méthodologiques</h3>
+                <ul class="checklist" id="ml-guardrails-list"></ul>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-forecast-horizons" role="tabpanel" hidden>
+        <div class="fh-section" id="forecast-horizons">
+          <div class="fh-oracle-banner" role="note">
+            <p class="fh-oracle-title" id="fh-oracle-title">FORÇAGE MÉTÉOROLOGIQUE ORACLE</p>
+            <p class="fh-oracle-body" id="fh-oracle-body">—</p>
+            <p class="fh-oracle-emphasis" id="fh-oracle-emphasis">—</p>
+          </div>
+
+          <header class="fh-header">
+            <div>
+              <h2 id="fh-section-title">PRÉVISION À 24, 48 ET 72 HEURES</h2>
+              <p class="fh-subtitle" id="fh-section-subtitle">—</p>
+            </div>
+            <p class="fh-scope-note" id="fh-scope-note">—</p>
+          </header>
+
+          <div class="fh-grid">
+            <div class="fh-primary">
+              <h3 class="fh-block-title" id="fh-chart-title">KGE en validation</h3>
+              <div class="fh-chart-wrap">
+                <svg id="fh-kge-chart" class="fh-chart" viewBox="0 0 320 140" role="img" aria-label="KGE en validation par horizon"></svg>
+                <ul class="fh-legend" id="fh-legend"></ul>
+              </div>
+              <p class="fh-axis-note" id="fh-axis-note">—</p>
+
+              <div class="fh-kpi-row" id="fh-kpi-cards"></div>
+
+              <div class="fh-degradation">
+                <h3>Correction de persistance</h3>
+                <p class="fh-deg-range">+24 h → +72 h</p>
+                <p class="fh-deg-value">Perte de KGE ≈ <strong id="fh-deg-loss">—</strong></p>
+                <p class="fh-deg-caption" id="fh-deg-caption">—</p>
+              </div>
+
+              <div class="fh-equation">
+                <p class="ml-equation" id="fh-eq-hybrid">—</p>
+                <p class="ml-equation" id="fh-eq-persistence">—</p>
+                <p class="ml-equation" id="fh-eq-residual">—</p>
+                <p class="fh-eq-note" id="fh-eq-note">—</p>
+              </div>
+            </div>
+
+            <aside class="fh-side">
+              <div class="fh-acf">
+                <h3 id="fh-acf-title">Autocorrélation du résidu</h3>
+                <div class="ml-acf-bars" id="fh-acf-bars"></div>
+                <p class="ml-acf-caption" id="fh-acf-explanation">—</p>
+              </div>
+
+              <div class="fh-arch">
+                <h3>Architecture à l'origine de prévision</h3>
+                <div class="fh-arch-diagram" aria-hidden="true">
+                  <div class="ml-arch-node strong">origine de prévision t</div>
+                  <div class="fh-arch-fork">
+                    <div class="fh-arch-col">
+                      <div class="ml-arch-node">État hydrologique à t</div>
+                      <div class="ml-arch-arrow">↓</div>
+                      <div class="ml-arch-node accent">Précipitations futures<br /><small>P ORACLE dans cette expérience</small></div>
+                      <div class="ml-arch-arrow">↓</div>
+                      <div class="ml-arch-node">GR4J → Qphysical(t+h)</div>
+                    </div>
+                    <div class="fh-arch-col">
+                      <div class="ml-arch-node">résidu observé e(t)</div>
+                      <div class="ml-arch-arrow">↓</div>
+                      <div class="ml-arch-node">ê_h(t)</div>
+                    </div>
+                  </div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node accent">correction résiduelle</div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node strong">Qhybrid(t+h)</div>
+                  <div class="fh-horizon-tags">
+                    <span>24 h</span><span>48 h</span><span>72 h</span>
+                  </div>
+                </div>
+                <p class="ml-arch-caption" id="fh-arch-caption">—</p>
+              </div>
+
+              <div class="fh-highflow">
+                <h3>MAE haut débit</h3>
+                <p class="fh-hf-note" id="fh-hf-threshold-note">—</p>
+                <div id="fh-highflow-table"></div>
+                <p class="fh-hf-interp" id="fh-hf-interpretation">—</p>
+              </div>
+
+              <div class="ml-decision">
+                <article class="ml-card result">
+                  <h3 id="fh-result-heading">Résultat</h3>
+                  <p id="fh-result-body">—</p>
+                </article>
+                <article class="ml-card decision">
+                  <h3 id="fh-complexity-heading">Complexité du modèle</h3>
+                  <p id="fh-complexity-body">—</p>
+                </article>
+                <article class="ml-card next">
+                  <h3 id="fh-next-heading">Question suivante</h3>
+                  <p id="fh-next-body">—</p>
+                </article>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-meteo-sensitivity" role="tabpanel" hidden>
+        <div class="ms-section" id="meteo-sensitivity">
+          <div class="ms-banner" role="note">
+            <p class="ms-banner-title" id="ms-banner-title">ANALYSE DE SENSIBILITÉ SYNTHÉTIQUE AU FORÇAGE MÉTÉOROLOGIQUE</p>
+            <p class="ms-banner-body" id="ms-banner-body">—</p>
+            <p class="ms-banner-emphasis" id="ms-banner-emphasis">NE CONSTITUE PAS UNE ÉVALUATION D'UN SYSTÈME RÉEL DE PRÉVISION MÉTÉOROLOGIQUE</p>
+          </div>
+
+          <header class="ms-header">
+            <div>
+              <h2 id="ms-section-title">SENSIBILITÉ AU FORÇAGE MÉTÉOROLOGIQUE</h2>
+              <p class="ms-subtitle" id="ms-section-subtitle">—</p>
+            </div>
+            <p class="ms-disclaimer" id="ms-disclaimer">—</p>
+          </header>
+
+          <div class="ms-scenario-row" id="ms-scenario-cards"></div>
+          <details class="ms-details">
+            <summary>Méthodologie des perturbations (paramètres synthétiques)</summary>
+            <pre id="ms-method-details">—</pre>
+          </details>
+
+          <div class="ms-grid">
+            <div class="ms-primary">
+              <h3 class="fh-block-title" id="ms-chart-title">GR4J physique — KGE en validation</h3>
+              <div class="fh-chart-wrap">
+                <svg id="ms-kge-chart" class="fh-chart" viewBox="0 0 320 140" role="img" aria-label="KGE physique par scénario météo"></svg>
+                <ul class="fh-legend" id="ms-legend"></ul>
+              </div>
+              <p class="fh-axis-note" id="ms-axis-note">—</p>
+
+              <div class="ms-hero" id="ms-hero">
+                <h3 id="ms-hero-label">—</h3>
+                <div class="ms-hero-grid">
+                  <div><span>Oracle</span><strong id="ms-hero-oracle">—</strong></div>
+                  <div><span>Fort</span><strong id="ms-hero-strong">—</strong></div>
+                  <div><span>ΔKGE</span><strong id="ms-hero-delta">—</strong></div>
+                </div>
+                <p id="ms-hero-statement">—</p>
+              </div>
+
+              <div class="fh-kpi-row" id="ms-loss-cards"></div>
+              <p class="ms-loss-label" id="ms-loss-label">—</p>
+
+              <div class="ms-mc">
+                <h3>Monte Carlo — forçage fort · +72 h · physique</h3>
+                <div class="ms-mc-band" id="ms-mc-band" aria-label="KGE p10 médiane p90"></div>
+                <p class="ms-mc-stats">
+                  p10 <strong id="ms-mc-p10">—</strong>
+                  · médiane <strong id="ms-mc-median">—</strong>
+                  · p90 <strong id="ms-mc-p90">—</strong>
+                  · étendue <strong id="ms-mc-spread">—</strong>
+                </p>
+                <p class="ms-mc-caption" id="ms-mc-caption-n">—</p>
+                <p class="ms-mc-caption" id="ms-mc-caption-spread">—</p>
+              </div>
+
+              <div class="ms-persist">
+                <h3>Persistance du résidu sous forçage imparfait</h3>
+                <div id="ms-persist-table"></div>
+                <p class="fh-hf-interp" id="ms-persist-interp">—</p>
+              </div>
+            </div>
+
+            <aside class="ms-side">
+              <div class="ms-complexity">
+                <h3 id="ms-complexity-heading">Complexité du modèle</h3>
+                <p id="ms-complexity-body">—</p>
+                <p class="ms-complexity-metric">
+                  max |Ridge − Persistance| KGE =
+                  <strong id="ms-ridge-max">—</strong>
+                </p>
+                <p class="ms-mc-caption" id="ms-complexity-footnote">—</p>
+              </div>
+
+              <div class="ms-scale">
+                <h3 id="ms-scale-title">SOURCE DE VARIABILITÉ</h3>
+                <p class="ms-scale-sub" id="ms-scale-subtitle">—</p>
+                <div class="ms-scale-row">
+                  <span id="ms-scale-meteo-label">Météo synthétique</span>
+                  <div class="ms-scale-track"><div class="ms-scale-fill meteo" id="ms-scale-meteo-bar"></div></div>
+                  <strong id="ms-scale-meteo-val">—</strong>
+                </div>
+                <div class="ms-scale-row">
+                  <span id="ms-scale-resid-label">Modèle résiduel</span>
+                  <div class="ms-scale-track"><div class="ms-scale-fill resid" id="ms-scale-resid-bar"></div></div>
+                  <strong id="ms-scale-resid-val">—</strong>
+                </div>
+                <p class="ms-mc-caption" id="ms-scale-note">—</p>
+              </div>
+
+              <div class="ms-highflow">
+                <h3>MAE haut débit · Oracle vs Fort</h3>
+                <p class="fh-hf-note" id="ms-hf-threshold">—</p>
+                <div id="ms-highflow-table"></div>
+                <p class="fh-hf-interp" id="ms-hf-interp">—</p>
+              </div>
+
+              <div class="ms-arch">
+                <h3>Chaîne de prévision STRYMO</h3>
+                <div class="ms-arch-diagram" aria-hidden="true">
+                  <div class="ml-arch-node">Q temps réel</div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node">État hydrologique</div>
+                  <div class="ms-nwp-box">
+                    <div class="ml-arch-node accent">NWP / QPF</div>
+                    <p class="ms-nwp-label" id="ms-nwp-label">SOURCE D'INCERTITUDE MAJEURE</p>
+                  </div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node">Modèle physique → Q physique</div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node">Correction résiduelle</div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node strong">Prévision ponctuelle +24 / +48 / +72 h</div>
+                </div>
+                <p class="ml-arch-caption" id="ms-arch-caption">—</p>
+              </div>
+
+              <div class="ml-decision">
+                <article class="ml-card result">
+                  <h3 id="ms-result-heading">Résultat</h3>
+                  <p id="ms-result-body">—</p>
+                </article>
+                <article class="ml-card decision">
+                  <h3 id="ms-eng-heading">Décision d'ingénierie</h3>
+                  <p id="ms-eng-body">—</p>
+                </article>
+                <article class="ml-card decision">
+                  <h3 id="ms-ml-heading">Décision ML</h3>
+                  <p id="ms-ml-body">—</p>
+                </article>
+                <article class="ml-card next">
+                  <h3 id="ms-next-heading">Question suivante</h3>
+                  <p id="ms-next-body">—</p>
+                  <p class="ms-next-lead" id="ms-next-lead">—</p>
+                </article>
+              </div>
+            </aside>
           </div>
         </div>
       </div>
@@ -105,127 +447,278 @@
       <div class="tab-panel" id="panel-uncertainty" role="tabpanel" hidden>
         <div class="panel-grid">
           <figure>
-            <img id="fig-uncertainty" alt="Parametric uncertainty envelope on validation period" />
+            <img id="fig-uncertainty" alt="Enveloppe d'incertitude paramétrique en validation" />
           </figure>
           <div class="panel-copy">
-            <p>The behavioral envelope represents parametric dispersion only.</p>
+            <p id="behavioral-envelope">
+              L'enveloppe comportementale représente uniquement la dispersion paramétrique.
+            </p>
             <ul>
-              <li id="bullet-behavioral">— behavioral parameter sets</li>
-              <li id="bullet-coverage">empirical validation coverage: —</li>
-              <li id="bullet-envelope">q05–q95 is NOT a calibrated 90% prediction interval</li>
+              <li id="bullet-behavioral">— jeux de paramètres comportementaux</li>
+              <li id="bullet-coverage">Couverture empirique en validation : —</li>
+              <li id="bullet-envelope">q05–q95 N'EST PAS un intervalle de prédiction calibré à 90 %</li>
             </ul>
             <p class="warning" id="parametric-limitation">
-              Precipitation, observation, initial-state and model-structure uncertainty are
-              not propagated in this prototype.
+              N'inclut pas les incertitudes liées aux précipitations, aux observations,
+              à l'état initial ni à la structure du modèle.
             </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-forecast-uncertainty" role="tabpanel" hidden>
+        <div class="fu-section" id="forecast-uncertainty">
+          <header class="fu-top">
+            <div>
+              <h2 id="fu-section-title">INCERTITUDE DE PRÉVISION</h2>
+              <p class="fu-subtitle" id="fu-section-subtitle">—</p>
+            </div>
+            <div class="fu-nominal-box">
+              <div>
+                <span class="fu-kicker">Couverture nominale</span>
+                <strong id="fu-target">90%</strong>
+              </div>
+              <div>
+                <span class="fu-kicker">Couverture empirique</span>
+                <strong class="fu-emp-label">sur validation non utilisée pour le calage</strong>
+              </div>
+            </div>
+          </header>
+          <p class="fu-calib-note" id="fu-calib-note">—</p>
+          <p class="fu-central" id="fu-central">—</p>
+          <div class="fu-rs-row">
+            <p id="fu-reliability-def">—</p>
+            <p id="fu-sharpness-def">—</p>
+          </div>
+
+          <div class="fu-grid">
+            <div class="fu-primary">
+              <h3 class="fh-block-title">Couverture à 90 % — forçage oracle</h3>
+              <p class="fu-target-line">CIBLE = <strong id="fu-target-inline">90%</strong></p>
+              <div id="fu-coverage-bars" class="fu-coverage-bars"></div>
+
+              <div class="fu-method-cards" id="fu-method-cards"></div>
+
+              <div class="fu-hero">
+                <p class="fu-pref-label" id="fu-pref-label">préféré après comparaison en validation</p>
+                <h3>+24 h · <span id="fu-hero-method">—</span></h3>
+                <div class="fu-hero-grid">
+                  <div><span>NOMINALE</span><strong id="fu-hero-nominal">—</strong></div>
+                  <div><span>EMPIRIQUE</span><strong id="fu-hero-empirical">—</strong></div>
+                  <div><span>LARGEUR MOYENNE</span><strong id="fu-hero-width">—</strong></div>
+                </div>
+                <p>Erreur de couverture : <strong id="fu-hero-error">—</strong></p>
+                <p class="fu-caveat" id="fu-hero-caveat">—</p>
+              </div>
+
+              <div class="fu-before-after">
+                <div class="fu-ba-col">
+                  <h4>Dispersion paramétrique</h4>
+                  <p>ensemble comportemental q05–q95</p>
+                  <p class="fu-ba-cov">couverture empirique ≈ <strong id="fu-ba-before">—</strong></p>
+                </div>
+                <div class="fu-ba-arrow">↓</div>
+                <div class="fu-ba-col">
+                  <h4>Incertitude prédictive</h4>
+                  <p id="fu-ba-method">—</p>
+                  <p class="fu-ba-cov">couverture empirique ≈ <strong id="fu-ba-after">—</strong></p>
+                </div>
+                <p class="fu-ba-caption" id="fu-ba-caption">—</p>
+                <p class="fu-ba-note" id="fu-ba-note">—</p>
+              </div>
+
+              <div class="fu-reliability">
+                <h3>Diagnostic de fiabilité</h3>
+                <p id="fu-rel-explain">—</p>
+                <figure class="fu-figure" id="fu-rel-figure-wrap" hidden>
+                  <img id="fu-rel-figure" alt="Diagramme de fiabilité" />
+                </figure>
+                <div id="fu-rel-points" class="fu-rel-points"></div>
+              </div>
+
+              <div class="fu-sharpness">
+                <h3>Précision de l'intervalle à +24 h (nominale 90 %)</h3>
+                <div id="fu-sharp-table"></div>
+                <p class="fu-note" id="fu-sharp-note">—</p>
+              </div>
+            </div>
+
+            <aside class="fu-side">
+              <div class="fu-regime-warn" role="alert">
+                <h3>⚠ <span id="fu-regime-title">DÉPENDANCE AU RÉGIME HYDROLOGIQUE</span></h3>
+                <p id="fu-regime-warning">—</p>
+                <div class="fu-regime-grid">
+                  <div><span>GLOBALE</span><strong id="fu-reg-overall">—</strong></div>
+                  <div class="is-bad"><span>HAUT DÉBIT</span><strong id="fu-reg-high">—</strong></div>
+                  <div><span>DÉBIT NORMAL</span><strong id="fu-reg-normal">—</strong></div>
+                  <div><span>ÉTIAGE</span><strong id="fu-reg-low">—</strong></div>
+                </div>
+                <p class="fu-note" id="fu-reg-threshold">—</p>
+                <p id="fu-regime-why">—</p>
+              </div>
+
+              <div class="fu-extremes">
+                <h3>Audit des événements extrêmes (+24 h)</h3>
+                <div id="fu-extreme-table"></div>
+              </div>
+
+              <div class="fu-meteo">
+                <h3>Oracle vs forçage modéré</h3>
+                <div id="fu-meteo-table"></div>
+                <p id="fu-meteo-msg">—</p>
+                <p class="fu-note" id="fu-meteo-follow">—</p>
+              </div>
+
+              <div class="fu-sources">
+                <h3 id="fu-sources-heading">—</h3>
+                <div id="fu-sources-list"></div>
+                <p class="fu-note" id="fu-sources-future">—</p>
+              </div>
+
+              <div class="fu-arch">
+                <h3>Chaîne STRYMO finale</h3>
+                <div class="fu-arch-diagram" aria-hidden="true">
+                  <div class="ml-arch-node">OBSERVATIONS → QUALITÉ DES DONNÉES → MISE À JOUR DE L'ÉTAT</div>
+                  <div class="ms-nwp-box">
+                    <div class="ml-arch-node accent">NWP / QPF RÉELS</div>
+                  </div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node">MODÈLE PHYSIQUE → Q PHYSIQUE</div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node">CORRECTION RÉSIDUELLE → PRÉVISION PONCTUELLE</div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node accent">CALIBRATION DE L'INCERTITUDE</div>
+                  <div class="ml-arch-arrow">↓</div>
+                  <div class="ml-arch-node strong">INTERVALLE DE PRÉDICTION → STRYMO</div>
+                </div>
+                <p class="ml-arch-caption" id="fu-arch-caption">—</p>
+              </div>
+
+              <div class="ml-decision">
+                <article class="ml-card result">
+                  <h3 id="fu-result-heading">Résultat</h3>
+                  <p id="fu-result-body">—</p>
+                </article>
+                <article class="ml-card decision">
+                  <h3 id="fu-decision-heading">Décision</h3>
+                  <p id="fu-decision-body">—</p>
+                </article>
+                <article class="ml-card decision">
+                  <h3 id="fu-limit-heading">Limite</h3>
+                  <p id="fu-limit-body">—</p>
+                </article>
+              </div>
+
+              <p class="fu-takeaway" id="fu-takeaway">—</p>
+            </aside>
           </div>
         </div>
       </div>
     </section>
 
     <section class="architecture" aria-label="Architecture">
-      <h2>Calibration harness architecture</h2>
+      <h2>Architecture du harnais de calage</h2>
       <div class="arch-strip">
-        <div class="arch-node"><strong>DATA</strong></div>
+        <div class="arch-node"><strong>DONNÉES</strong></div>
         <span class="arch-arrow">→</span>
         <div class="arch-node"><strong>QA / QC</strong></div>
         <span class="arch-arrow">→</span>
         <div class="arch-node">
-          <strong>HYDROLOGICAL MODEL</strong>
-          <small>Replaceable engine</small>
+          <strong>MODÈLE HYDROLOGIQUE</strong>
+          <small>Moteur remplaçable</small>
         </div>
         <span class="arch-arrow">→</span>
-        <div class="arch-node"><strong>PARAMETER EXPLORATION</strong></div>
+        <div class="arch-node"><strong>EXPLORATION DES PARAMÈTRES</strong></div>
         <span class="arch-arrow">→</span>
         <div class="arch-node">
-          <strong>CALIBRATION</strong>
-          <small>KGE_cal ranking</small>
+          <strong>CALAGE</strong>
+          <small>classement par KGE_cal</small>
         </div>
         <span class="arch-arrow">→</span>
         <div class="arch-node">
-          <strong>INDEPENDENT VALIDATION</strong>
-          <small>never used for fitting</small>
+          <strong>VALIDATION INDÉPENDANTE</strong>
+          <small>jamais utilisée pour le calage</small>
         </div>
         <span class="arch-arrow">→</span>
         <div class="arch-node">
           <strong>ENSEMBLE</strong>
-          <small>parametric uncertainty</small>
+          <small>incertitude paramétrique</small>
         </div>
         <span class="arch-arrow">→</span>
-        <div class="arch-node"><strong>AUDIT REPORT</strong></div>
+        <div class="arch-node"><strong>RAPPORT D'AUDIT</strong></div>
       </div>
     </section>
 
-    <section class="audit" aria-label="Auditability">
-      <h2>Every calibration produces an auditable run</h2>
+    <section class="audit" aria-label="Traçabilité">
+      <h2>Chaque calage produit une exécution auditable</h2>
       <ul class="checklist">
-        <li>configuration hash</li>
-        <li>random seed</li>
-        <li>model/version metadata</li>
-        <li>parameter bounds</li>
-        <li>calibration and validation metrics</li>
-        <li>behavioral ensemble definition</li>
-        <li>explicit limitations</li>
-        <li>generated artifacts</li>
+        <li>empreinte de configuration</li>
+        <li>graine aléatoire</li>
+        <li>métadonnées modèle / version</li>
+        <li>bornes des paramètres</li>
+        <li>métriques de calage et de validation</li>
+        <li>définition de l'ensemble comportemental</li>
+        <li>limites explicites</li>
+        <li>artéfacts générés</li>
       </ul>
       <p class="meta-line">
-        Config SHA256: <code id="config-hash">—</code>
-        · Git commit: <code id="git-commit">—</code>
+        SHA256 de la configuration : <code id="config-hash">—</code>
+        · Commit Git : <code id="git-commit">—</code>
       </p>
-      <a class="button" id="report-link" href="assets/rapport_calage.html">Open calibration report</a>
+      <a class="button" id="report-link" href="assets/rapport_calage.html">Ouvrir le rapport de calage</a>
     </section>
 
-    <section class="proves" aria-label="What this prototype proves">
-      <h2>What this prototype proves</h2>
+    <section class="proves" aria-label="Ce que ce prototype démontre">
+      <h2>Ce que ce prototype démontre</h2>
       <div class="three-cards">
         <article>
-          <h3>Automation</h3>
+          <h3>Automatisation</h3>
           <p>
-            Expert calibration steps can be transformed into a reproducible computational
-            workflow.
+            Les étapes d'un calage expert peuvent être transformées en un flux
+            de calcul reproductible.
           </p>
         </article>
         <article>
-          <h3>Guardrails</h3>
+          <h3>Garde-fous</h3>
           <p>
-            Independent validation, explicit constraints and traceability reduce the risk
-            of accepting a numerically attractive but fragile model.
+            La validation indépendante, les contraintes explicites et la traçabilité
+            réduisent le risque d'accepter un modèle numériquement attractif mais fragile.
           </p>
         </article>
         <article>
-          <h3>Extensibility</h3>
+          <h3>Extensibilité</h3>
           <p>
-            The calibration harness is designed so the hydrological engine can later be
-            replaced or connected to HEC-HMS.
+            Le harnais de calage est conçu pour que le moteur hydrologique puisse
+            ensuite être remplacé ou connecté à HEC-HMS.
           </p>
-          <p class="note">HEC-HMS integration is a future step — not implemented in this prototype.</p>
+          <p class="note">L'intégration HEC-HMS est une étape future — non implémentée dans ce prototype.</p>
         </article>
       </div>
     </section>
 
-    <section class="next-step" aria-label="Next step toward the target system">
-      <h2>From prototype to operational +24 h / +48 h forecasting</h2>
+    <section class="next-step" aria-label="Étape suivante vers le système cible">
+      <h2>Du prototype à la prévision opérationnelle +24 h / +48 h</h2>
       <p class="note">
-        The items below are future project work. They are not present capabilities of this
-        prototype.
+        Les points ci-dessous relèvent de travaux futurs. Ce ne sont pas des
+        capacités présentes de ce prototype.
       </p>
       <ol>
-        <li>Connect HEC-HMS or selected hydrological engine</li>
-        <li>Replace centroid precipitation with operational basin forcing</li>
-        <li>Add real-time sensor ingestion and basin-state updating</li>
-        <li>Propagate meteorological uncertainty into forecast intervals</li>
+        <li>Connecter HEC-HMS ou le moteur hydrologique retenu</li>
+        <li>Remplacer la précipitation au centroïde par un forçage opérationnel de bassin</li>
+        <li>Ajouter l'ingestion temps réel de capteurs et la mise à jour de l'état du bassin</li>
+        <li>Propager l'incertitude météorologique dans les intervalles de prévision</li>
       </ol>
     </section>
 
     <footer class="footer">
-      <p>Hydrological calibration engineering prototype</p>
+      <p>Prototype d'ingénierie du calage hydrologique</p>
       <p>
-        Scientific results generated by the Python pipeline — frontend contains no
-        calibration logic.
+        Résultats scientifiques générés par le pipeline Python — le frontend ne
+        contient aucune logique de calage.
       </p>
       <p>
-        <a id="github-link" href="#" rel="noopener noreferrer">GitHub repository</a>
-        <span id="github-placeholder" hidden>GitHub URL not configured</span>
+        <a id="github-link" href="#" rel="noopener noreferrer">Dépôt GitHub</a>
+        <span id="github-placeholder" hidden>URL GitHub non configurée</span>
       </p>
     </footer>
 

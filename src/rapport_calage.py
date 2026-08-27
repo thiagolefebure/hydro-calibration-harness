@@ -1,4 +1,4 @@
-"""Automatic auditable calibration report generation (Phase 6)."""
+"""Génération automatique du rapport de calage auditable (Phase 6)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ import pandas as pd
 import yaml
 
 from src.calibration_diagnostics import (
-    format_bound_proximity,
     kge_cal_distribution,
     kge_cal_val_correlation,
     parameters_close_to_bounds,
@@ -32,36 +31,40 @@ from src.validation import select_best_calibration_candidate
 REPORT_FILENAME = "rapport_calage.md"
 
 GR4J_PARAMETER_DOCS = {
-    "X1": ("Production store capacity", "mm"),
-    "X2": ("Groundwater exchange flux", "mm"),
-    "X3": ("Routing store capacity", "mm"),
-    "X4": ("Unit-hydrograph time base (UH1/UH2)", "days"),
+    "X1": ("Capacité du réservoir de production", "mm"),
+    "X2": ("Flux d'échange souterrain", "mm"),
+    "X3": ("Capacité du réservoir de routage", "mm"),
+    "X4": ("Base temporelle des hydrogrammes unitaires (UH1/UH2)", "jours"),
 }
 
 VALIDATION_ISOLATION_STATEMENT = (
-    "Validation observations were not used for parameter sampling, ranking, "
-    "parameter selection, stopping criteria, or behavioral-ensemble membership."
+    "Les données de validation ne sont utilisées ni pour l'échantillonnage, "
+    "ni pour le classement, ni pour la sélection des paramètres."
 )
 
 UNCERTAINTY_ENVELOPE_STATEMENT = (
-    "The q05–q95 envelope is the dispersion of the selected behavioral "
-    "parameter simulations. It is not a calibrated 90% confidence or "
-    "prediction interval."
+    "L'enveloppe q05–q95 est une enveloppe représentant uniquement l'incertitude "
+    "paramétrique (dispersion des simulations comportementales retenues). "
+    "Il ne s'agit ni d'un intervalle de confiance à 90 %, ni d'un intervalle "
+    "de prédiction à 90 %, ni d'une probabilité de 90 %."
 )
 
 UNDER_COVERAGE_STATEMENT = (
-    "The observed under-coverage demonstrates that parametric dispersion alone "
-    "is insufficient to represent total predictive uncertainty."
+    "La sous-couverture empirique observée sur la période de validation est "
+    "attendue, car les incertitudes sur les précipitations, sur les observations "
+    "et sur la structure du modèle ne sont pas propagées dans ce prototype : "
+    "la dispersion paramétrique seule ne suffit pas à représenter l'incertitude "
+    "prédictive totale."
 )
 
 EQUIFINALITY_STATEMENT = (
-    "Multiple distinct parameter sets achieve similar calibration performance; "
-    "therefore the highest-scoring parameter set should not be interpreted as "
-    "a uniquely identified physical truth."
+    "**Équifinalité.** Plusieurs jeux de paramètres distincts atteignent des "
+    "performances de calage similaires ; le jeu de plus haut score ne doit donc "
+    "pas être interprété comme une vérité physique unique."
 )
 
 STATUS_BANNER = (
-    "**STATUS: PROTOTYPE / NOT FOR OPERATIONAL HYDROLOGICAL DECISION-MAKING**"
+    "**STATUT : PROTOTYPE / NON DESTINÉ À LA DÉCISION HYDROLOGIQUE OPÉRATIONNELLE**"
 )
 
 
@@ -92,6 +95,18 @@ def _pct(value: float | None) -> str:
     if value is None or pd.isna(value):
         return "n/a"
     return f"{100.0 * value:.1f}%"
+
+
+def _format_bound_proximity_fr(close: dict[str, str | None]) -> str:
+    flagged = {name: side for name, side in close.items() if side is not None}
+    if not flagged:
+        return "aucun (tous les paramètres à plus de 2 % des bornes configurées)"
+    side_fr = {"lower": "inférieure", "upper": "supérieure"}
+    parts = [
+        f"{name} proche de la borne {side_fr.get(side, side)}"
+        for name, side in flagged.items()
+    ]
+    return "; ".join(parts)
 
 
 def summarize_processed_data(df: pd.DataFrame) -> dict[str, Any]:
@@ -155,22 +170,22 @@ def _comparison_metrics_table(
     best: pd.Series,
 ) -> str:
     rows = [
-        ("NSE", "nse_cal", "nse_val"),
-        ("KGE", "kge_cal", "kge_val"),
-        ("r", "r_cal", "r_val"),
-        ("alpha", "alpha_cal", "alpha_val"),
-        ("beta", "beta_cal", "beta_val"),
-        ("log-NSE", "lognse_cal", "lognse_val"),
-        ("volumetric bias", "bias_cal", "bias_val"),
+        ("NSE", "NSE", "nse_cal", "nse_val"),
+        ("KGE", "KGE", "kge_cal", "kge_val"),
+        ("r", "r", "r_cal", "r_val"),
+        ("alpha", "alpha", "alpha_cal", "alpha_val"),
+        ("beta", "beta", "beta_cal", "beta_val"),
+        ("log-NSE", "log-NSE", "lognse_cal", "lognse_val"),
+        ("Biais volumique", "Volume bias", "bias_cal", "bias_val"),
     ]
     lines = [
-        "| Metric | Uncalibrated (cal) | Uncalibrated (val) | "
-        "Best cal (cal) | Best cal (val) |",
+        "| Métrique | Non calé (calage) | Non calé (validation) | "
+        "Meilleur calage (calage) | Meilleur calage (validation) |",
         "| --- | ---: | ---: | ---: | ---: |",
     ]
-    for label, cal_col, val_col in rows:
-        base_cal = _metrics_row(baseline, label.replace("volumetric ", "Volume "))["calibration"]
-        base_val = _metrics_row(baseline, label.replace("volumetric ", "Volume "))["validation"]
+    for label, artifact_name, cal_col, val_col in rows:
+        base_cal = _metrics_row(baseline, artifact_name)["calibration"]
+        base_val = _metrics_row(baseline, artifact_name)["validation"]
         lines.append(
             f"| {label} | {_fmt(base_cal)} | {_fmt(base_val)} | "
             f"{_fmt(best[cal_col])} | {_fmt(best[val_col])} |"
@@ -181,7 +196,8 @@ def _comparison_metrics_table(
 def _hydrological_table(summary: pd.DataFrame) -> str:
     annual = summary[summary["period"].str.fullmatch(r"\d{4}")]
     lines = [
-        "| Year | Precip (mm) | Q depth (mm) | Runoff ratio | Mean Q (mm/d) | Max Q (mm/d) |",
+        "| Année | Précipitations (mm) | Lame d'eau Q (mm) | "
+        "Coefficient d'écoulement | Q moyen (mm/j) | Q max (mm/j) |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     for _, row in annual.iterrows():
@@ -196,14 +212,19 @@ def _hydrological_table(summary: pd.DataFrame) -> str:
 
 
 def _calibration_validation_aggregate(summary: pd.DataFrame) -> str:
+    label_fr = {
+        "calibration": "calage",
+        "validation": "validation",
+    }
     lines = [
-        "| Period aggregate | Precip (mm) | Q depth (mm) | Runoff ratio | Mean Q (mm/d) | Max Q (mm/d) |",
+        "| Agrégat de période | Précipitations (mm) | Lame d'eau Q (mm) | "
+        "Coefficient d'écoulement | Q moyen (mm/j) | Q max (mm/j) |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     for label in ("calibration", "validation"):
         row = summary.loc[summary["period"] == label].iloc[0]
         lines.append(
-            f"| {label} | {_fmt(row['annual_precipitation_mm'], 1)} | "
+            f"| {label_fr[label]} | {_fmt(row['annual_precipitation_mm'], 1)} | "
             f"{_fmt(row['annual_observed_discharge_depth_mm'], 1)} | "
             f"{_fmt(row['runoff_ratio_qp'])} | "
             f"{_fmt(row['mean_observed_discharge_mm_day'])} | "
@@ -218,21 +239,23 @@ def _generalization_paragraph(best: pd.Series) -> str:
     delta = kge_val - kge_cal
     if delta >= -0.08:
         return (
-            "The best calibration candidate retains most of its calibration-period "
-            f"skill in validation (KGE_cal = {_fmt(kge_cal)}, KGE_val = {_fmt(kge_val)}). "
-            "This suggests reasonable split-sample generalization for this pilot basin, "
-            "without claiming operational robustness."
+            "Le meilleur jeu de paramètres issu du calage conserve l'essentiel "
+            "de sa performance de calage en validation "
+            f"(KGE_cal = {_fmt(kge_cal)}, KGE_val = {_fmt(kge_val)}). "
+            "Cela suggère une généralisation split-sample raisonnable pour ce "
+            "bassin pilote, sans revendiquer une robustesse opérationnelle."
         )
     return (
-        "Calibration performance is materially higher than validation performance "
+        "La performance en calage est nettement supérieure à celle en validation "
         f"(KGE_cal = {_fmt(kge_cal)}, KGE_val = {_fmt(kge_val)}). "
-        "Some calibration skill does not fully transfer to the validation period, "
-        "which is expected in split-sample experiments and must not be used to retune parameters."
+        "Une partie de la performance du modèle ne se transfère pas pleinement "
+        "à la période de validation ; ce comportement est typique des expériences "
+        "split-sample et ne doit pas servir à retuner les paramètres."
     )
 
 
 def render_rapport_calage(inputs: ReportInputs) -> str:
-    """Render the full Markdown report from loaded inputs."""
+    """Rendre le rapport Markdown complet à partir des entrées chargées."""
     cfg = inputs.config
     station = cfg["station"]
     station_name = station.get("name", station["code"])
@@ -279,50 +302,54 @@ def render_rapport_calage(inputs: ReportInputs) -> str:
     sections: list[str] = [
         STATUS_BANNER,
         "",
-        "# Automated Rainfall–Runoff Calibration Report",
+        "# Rapport de calage pluie–débit automatisé",
         "",
-        "## 1. Prototype scope",
+        "## 1. Périmètre du prototype",
         "",
-        "This document describes a **calibration-engineering prototype** built around "
-        "the conceptual **GR4J** rainfall–runoff model. The goal is to demonstrate "
-        "automated parameter exploration, explicit calibration/validation separation, "
-        "GLUE-inspired behavioral-ensemble diagnostics, transparent uncertainty "
-        "communication, and full reproducibility.",
+        "Ce document décrit un **prototype d'ingénierie du calage** construit autour "
+        "du modèle conceptuel pluie–débit **GR4J**. L'objectif est de démontrer "
+        "l'exploration automatique de l'espace des paramètres, la séparation "
+        "explicite calage / validation, un ensemble comportemental inspiré de "
+        "l'approche GLUE, la communication transparente de l'incertitude et la "
+        "reproductibilité complète.",
         "",
-        "This is **not** an operational flood-forecasting or regulatory decision-support system.",
+        "Il ne s'agit **pas** d'un système opérationnel de prévision de crue ni "
+        "d'un outil réglementaire d'aide à la décision.",
         "",
-        "## 2. Basin and data",
+        "## 2. Bassin versant et données",
         "",
-        f"- **Station code:** {station['code']}",
-        f"- **Station name:** {station_name}",
-        f"- **Basin area:** {station['basin_area_km2']} km²",
-        f"- **Centroid:** ({station['centroid_lat']}, {station['centroid_lon']})",
-        f"- **Analysis period:** {data_summary['analysis_start']} → {data_summary['analysis_end']}",
-        f"- **Warm-up period:** {periods['warmup'][0]} → {periods['warmup'][1]}",
-        f"- **Calibration period:** {periods['calibration'][0]} → {periods['calibration'][1]}",
-        f"- **Validation period:** {periods['validation'][0]} → {periods['validation'][1]}",
-        "- **Discharge source:** Hub'Eau hydrometry API v2 (`obs_elab`, `QmnJ`, L/s)",
-        "- **Precipitation / ET0 source:** Open-Meteo Historical Weather API (daily)",
-        "- **Temporal resolution:** daily",
-        f"- **Timezone (meteo aggregation):** {tz}",
-        f"- **Missing precipitation:** {data_summary['missing']['precipitation_mm']} days",
-        f"- **Missing ET0:** {data_summary['missing']['et0_mm']} days",
-        f"- **Missing discharge:** {data_summary['missing']['discharge_mm']} days",
-        f"- **Usable observations (all variables present):** {data_summary['usable_observations']} days",
+        f"- **Code station :** {station['code']}",
+        f"- **Nom de la station :** {station_name}",
+        f"- **Surface du bassin versant :** {station['basin_area_km2']} km²",
+        f"- **Centroïde :** ({station['centroid_lat']}, {station['centroid_lon']})",
+        f"- **Période d'analyse :** {data_summary['analysis_start']} → {data_summary['analysis_end']}",
+        f"- **Période de mise en route (warm-up) :** {periods['warmup'][0]} → {periods['warmup'][1]}",
+        f"- **Période de calage :** {periods['calibration'][0]} → {periods['calibration'][1]}",
+        f"- **Période de validation :** {periods['validation'][0]} → {periods['validation'][1]}",
+        "- **Source de débit :** API Hub'Eau hydrométrie v2 (`obs_elab`, `QmnJ`, L/s)",
+        "- **Source précipitations / ET0 :** Open-Meteo Historical Weather API (journalière)",
+        "- **Résolution temporelle :** journalière",
+        f"- **Fuseau horaire (agrégation météo) :** {tz}",
+        f"- **Précipitations manquantes :** {data_summary['missing']['precipitation_mm']} jours",
+        f"- **ET0 manquante :** {data_summary['missing']['et0_mm']} jours",
+        f"- **Débit manquant :** {data_summary['missing']['discharge_mm']} jours",
+        f"- **Observations exploitables (toutes variables présentes) :** {data_summary['usable_observations']} jours",
         "",
-        "Precipitation is represented by a single Open-Meteo point at the basin "
-        "centroid and is not basin-averaged precipitation.",
+        "Les précipitations sont représentées par un point Open-Meteo unique au "
+        "centroïde du bassin versant ; il ne s'agit pas d'une précipitation "
+        "moyenne de bassin.",
         "",
-        "Discharge conversion: Q_mm/day = Q_L/s × 0.0864 / basin_area_km².",
+        "Conversion du débit : Q_mm/j = Q_L/s × 0.0864 / basin_area_km².",
         "",
-        "## 3. Hydrological model",
+        "## 3. Modèle hydrologique",
         "",
-        "**GR4J** (Perrin, Michel & Andréassian, 2003) — four-parameter conceptual model.",
+        "**GR4J** (Perrin, Michel & Andréassian, 2003) — modèle conceptuel à quatre paramètres.",
         "",
-        "GR4J is a conceptual model. Calibrated parameters must not automatically "
-        "be interpreted as direct physical measurements of catchment properties.",
+        "GR4J est un modèle conceptuel. Les paramètres calés ne doivent pas être "
+        "interprétés automatiquement comme des mesures physiques directes des "
+        "propriétés du bassin versant.",
         "",
-        "| Parameter | Meaning | Unit | Demonstration bounds |",
+        "| Paramètre | Signification | Unité | Bornes de démonstration |",
         "| --- | --- | --- | --- |",
     ]
 
@@ -337,79 +364,100 @@ def render_rapport_calage(inputs: ReportInputs) -> str:
     sections.extend(
         [
             "",
-            "**Initial-state convention:** production store at 30% of X1, routing store at 50% of X3, empty unit-hydrograph stores (airGR default fractions).",
-            f"**Warm-up duration:** {warmup_days} days ({periods['warmup'][0]} → {periods['warmup'][1]}), excluded from all reported metrics.",
-            "**Continuous-state behavior:** GR4J runs continuously from warm-up start through validation end without resetting states at period boundaries.",
+            "**Convention d'état initial :** réservoir de production à 30 % de X1, "
+            "réservoir de routage à 50 % de X3, stocks d'hydrogrammes unitaires vides "
+            "(fractions par défaut airGR).",
+            f"**Durée de la période de mise en route (warm-up) :** {warmup_days} jours "
+            f"({periods['warmup'][0]} → {periods['warmup'][1]}), exclue de toutes "
+            "les métriques reportées.",
+            "**Continuité des états :** GR4J s'exécute en continu du début de la "
+            "période de mise en route (warm-up) jusqu'à la fin de la validation, "
+            "sans réinitialisation des états aux frontières de période.",
             "",
-            "## 4. Calibration experiment",
+            "## 4. Expérience de calage",
             "",
-            f"- **Sampling method:** Latin Hypercube Sampling ({cal_cfg.get('sampler', 'latin_hypercube')})",
-            f"- **N:** {cal_cfg['n_samples']}",
-            f"- **Random seed:** {cal_cfg['seed']}",
-            "- **Parameter bounds:** as in Section 3",
-            "- **Ranking objective:** KGE_cal (calibration period only)",
-            "- **Validation isolation rule:** validation metrics are diagnostic only",
-            f"- **Total runtime:** {_fmt(runtime_total, 2)} s"
-            + (" (not recorded — re-run `--calibrate` to persist)" if runtime_total is None else ""),
-            f"- **Mean runtime per evaluation:** {_fmt(runtime_per, 4)} s"
-            + (" (not recorded)" if runtime_per is None else ""),
+            f"- **Méthode d'échantillonnage :** Latin Hypercube Sampling ({cal_cfg.get('sampler', 'latin_hypercube')})",
+            f"- **N :** {cal_cfg['n_samples']}",
+            f"- **Graine aléatoire :** {cal_cfg['seed']}",
+            "- **Bornes des paramètres :** voir section 3",
+            "- **Objectif de classement :** KGE_cal (période de calage uniquement)",
+            "- **Règle d'isolement de la validation :** les métriques de validation sont purement diagnostiques",
+            f"- **Temps de calcul total :** {_fmt(runtime_total, 2)} s"
+            + (
+                " (non enregistré — relancer `python run.py --calibrate` pour persister)"
+                if runtime_total is None
+                else ""
+            ),
+            f"- **Temps moyen par évaluation :** {_fmt(runtime_per, 4)} s"
+            + (" (non enregistré)" if runtime_per is None else ""),
             "",
             VALIDATION_ISOLATION_STATEMENT,
             "",
-            "## 5. Uncalibrated baseline",
+            "## 5. Référence non calée",
             "",
-            "Fixed demonstration parameters (not manually tuned to observations): "
+            "Paramètres de démonstration fixes (non ajustés manuellement aux observations) : "
             f"X1={DEMO_PARAMETERS.X1}, X2={DEMO_PARAMETERS.X2}, "
             f"X3={DEMO_PARAMETERS.X3}, X4={DEMO_PARAMETERS.X4}.",
             "",
-            "| Metric | Calibration | Validation |",
+            "| Métrique | Calage | Validation |",
             "| --- | ---: | ---: |",
         ]
     )
 
+    metric_label_fr = {
+        "NSE": "NSE",
+        "KGE": "KGE",
+        "r": "r",
+        "alpha": "alpha",
+        "beta": "beta",
+        "log-NSE": "log-NSE",
+        "Volume bias": "Biais volumique",
+    }
     for _, row in inputs.baseline_metrics.iterrows():
+        label = metric_label_fr.get(str(row["metric"]), str(row["metric"]))
         sections.append(
-            f"| {row['metric']} | {_fmt(row['calibration'])} | {_fmt(row['validation'])} |"
+            f"| {label} | {_fmt(row['calibration'])} | {_fmt(row['validation'])} |"
         )
 
     sections.extend(
         [
             "",
-            "## 6. Best calibration candidate",
+            "## 6. Meilleur jeu de paramètres issu du calage",
             "",
-            f"- **Run ID:** {int(best['run_id'])}",
-            f"- **X1–X4:** {_fmt(best['x1'], 3)}, {_fmt(best['x2'], 3)}, "
+            f"- **Identifiant d'exécution (run_id) :** {int(best['run_id'])}",
+            f"- **X1–X4 :** {_fmt(best['x1'], 3)}, {_fmt(best['x2'], 3)}, "
             f"{_fmt(best['x3'], 3)}, {_fmt(best['x4'], 3)}",
             "",
-            "**Calibration metrics:** "
+            "**Métriques de calage :** "
             f"NSE={_fmt(best['nse_cal'])}, KGE={_fmt(best['kge_cal'])}, "
             f"r={_fmt(best['r_cal'])}, alpha={_fmt(best['alpha_cal'])}, "
             f"beta={_fmt(best['beta_cal'])}, log-NSE={_fmt(best['lognse_cal'])}, "
-            f"bias={_fmt(best['bias_cal'])}.",
+            f"biais={_fmt(best['bias_cal'])}.",
             "",
-            "**Validation metrics (diagnostic only):** "
+            "**Métriques de validation (diagnostiques uniquement) :** "
             f"NSE={_fmt(best['nse_val'])}, KGE={_fmt(best['kge_val'])}, "
             f"r={_fmt(best['r_val'])}, alpha={_fmt(best['alpha_val'])}, "
             f"beta={_fmt(best['beta_val'])}, log-NSE={_fmt(best['lognse_val'])}, "
-            f"bias={_fmt(best['bias_val'])}.",
+            f"biais={_fmt(best['bias_val'])}.",
             "",
-            f"**Bound proximity (within 2% of configured range):** {format_bound_proximity(close)}.",
+            f"**Proximité des bornes (à moins de 2 % de l'amplitude configurée) :** "
+            f"{_format_bound_proximity_fr(close)}.",
             "",
-            "## 7. Calibration vs validation",
+            "## 7. Calage vs validation",
             "",
             _comparison_metrics_table(inputs.baseline_metrics, best),
             "",
             _generalization_paragraph(best),
             "",
-            "## 8. Parameter-space diagnostics",
+            "## 8. Diagnostics de l'espace des paramètres",
             "",
-            "**KGE_cal distribution (N = "
-            f"{len(inputs.runs)}):** "
-            f"min={_fmt(dist['min'])}, median={_fmt(dist['median'])}, "
+            "**Distribution de KGE_cal (N = "
+            f"{len(inputs.runs)}) :** "
+            f"min={_fmt(dist['min'])}, médiane={_fmt(dist['median'])}, "
             f"p90={_fmt(dist['p90'])}, p95={_fmt(dist['p95'])}, "
             f"p99={_fmt(dist['p99'])}, max={_fmt(dist['max'])}.",
             "",
-            "**Threshold counts:**",
+            "**Effectifs par seuil :**",
         ]
     )
     for key, value in counts.items():
@@ -418,11 +466,11 @@ def render_rapport_calage(inputs: ReportInputs) -> str:
     sections.extend(
         [
             "",
-            f"**corr(KGE_cal, KGE_val):** {_fmt(corr)}",
+            f"**corr(KGE_cal, KGE_val) :** {_fmt(corr)}",
             "",
-            "**Behavioral parameter ranges (KGE_cal > official threshold):**",
+            "**Plages des paramètres comportementaux (KGE_cal > seuil officiel) :**",
             "",
-            "| Parameter | min | median | max |",
+            "| Paramètre | min | médiane | max |",
             "| --- | ---: | ---: | ---: |",
         ]
     )
@@ -432,49 +480,52 @@ def render_rapport_calage(inputs: ReportInputs) -> str:
             f"{_fmt(row['median'], 3)} | {_fmt(row['max'], 3)} |"
         )
 
-    weakly_text = ", ".join(weakly) if weakly else "none identified"
+    weakly_text = ", ".join(weakly) if weakly else "aucun identifié"
     sections.extend(
         [
             "",
             EQUIFINALITY_STATEMENT,
             "",
-            f"**Weakly constrained parameters in the behavioral set:** {weakly_text}.",
+            f"**Paramètres faiblement contraints dans l'ensemble comportemental :** {weakly_text}.",
             "",
-            "## 9. Behavioral ensemble",
+            "## 9. Ensemble comportemental",
             "",
-            "- **Method:** GLUE-inspired behavioral ensemble (not a complete GLUE implementation)",
-            f"- **Criterion:** KGE_cal > {threshold:g}",
-            f"- **Ensemble size:** {len(inputs.behavioral_runs)} members",
-            "- **Criterion is configurable** and is **not** a universal hydrological acceptability threshold",
-            "- **Validation does not affect membership**",
+            "- **Méthode :** ensemble comportemental inspiré de l'approche GLUE "
+            "(et non une implémentation complète de GLUE)",
+            f"- **Critère :** KGE_cal > {threshold:g}",
+            f"- **Taille de l'ensemble :** {len(inputs.behavioral_runs)} membres",
+            "- **Le critère est configurable** et **n'est pas** un seuil "
+            "d'acceptabilité hydrologique universel",
+            "- **La validation n'intervient pas dans l'appartenance à l'ensemble**",
             "",
-            "**q50 validation metrics (diagnostic):** "
+            "**Métriques de validation de q50 (diagnostiques) :** "
             f"NSE={_fmt(q50_dict['nse'])}, KGE={_fmt(q50_dict['kge'])}, "
             f"r={_fmt(q50_dict['r'])}, alpha={_fmt(q50_dict['alpha'])}, "
             f"beta={_fmt(q50_dict['beta'])}, log-NSE={_fmt(q50_dict['lognse'])}, "
-            f"bias={_fmt(q50_dict['bias'])}.",
+            f"biais={_fmt(q50_dict['bias'])}.",
             "",
-            "## 10. Uncertainty diagnostics",
+            "## 10. Diagnostics d'incertitude",
             "",
-            f"- **Empirical validation coverage of the behavioral envelope (q05–q95):** {_pct(coverage)}",
-            f"- **Mean envelope width:** {_fmt(width['mean'])} mm/d",
-            f"- **Median envelope width:** {_fmt(width['median'])} mm/d",
-            f"- **p90 envelope width:** {_fmt(width['p90'])} mm/d",
-            f"- **Mean width / mean observed validation discharge:** {_fmt(width['relative_to_obs_mean'])}",
+            f"- **Couverture empirique de validation de l'enveloppe comportementale (q05–q95) :** {_pct(coverage)}",
+            f"- **Largeur moyenne de l'enveloppe :** {_fmt(width['mean'])} mm/j",
+            f"- **Largeur médiane de l'enveloppe :** {_fmt(width['median'])} mm/j",
+            f"- **Largeur p90 de l'enveloppe :** {_fmt(width['p90'])} mm/j",
+            f"- **Largeur moyenne / débit observé moyen en validation :** {_fmt(width['relative_to_obs_mean'])}",
             "",
             UNCERTAINTY_ENVELOPE_STATEMENT,
             "",
             UNDER_COVERAGE_STATEMENT,
             "",
-            "The envelope explicitly excludes:",
-            "- precipitation uncertainty",
-            "- observation uncertainty",
-            "- model-structure uncertainty",
-            "- initial-state uncertainty",
+            "L'enveloppe exclut explicitement :",
+            "- l'incertitude sur les précipitations ;",
+            "- l'incertitude observationnelle ;",
+            "- l'incertitude de structure du modèle ;",
+            "- l'incertitude d'état initial.",
             "",
-            "**Threshold-sensitivity table (diagnostic; threshold not selected from validation):**",
+            "**Tableau de sensibilité au seuil (diagnostique ; le seuil n'est pas "
+            "choisi à partir de la validation) :**",
             "",
-            "| KGE_cal > | Members | Validation envelope coverage |",
+            "| KGE_cal > | Membres | Couverture empirique de validation |",
             "| --- | ---: | ---: |",
         ]
     )
@@ -488,15 +539,19 @@ def render_rapport_calage(inputs: ReportInputs) -> str:
     else:
         for threshold_val in (0.70, 0.75, 0.80, 0.85):
             n = int((inputs.runs["kge_cal"] > threshold_val).sum())
-            cov = _pct(coverage) if threshold_val == threshold else "n/a (re-run `--ensemble`)"
+            cov = (
+                _pct(coverage)
+                if threshold_val == threshold
+                else "n/a (relancer `python run.py --ensemble`)"
+            )
             sections.append(f"| {threshold_val:.2f} | {n} | {cov} |")
 
     sections.extend(
         [
             "",
-            "**q50 vs best-calibration validation comparison (diagnostic):**",
+            "**Comparaison q50 vs meilleur calage en validation (diagnostique) :**",
             "",
-            "| Metric | q50 | Best calibration |",
+            "| Métrique | q50 | Meilleur calage |",
             "| --- | ---: | ---: |",
         ]
     )
@@ -508,73 +563,74 @@ def render_rapport_calage(inputs: ReportInputs) -> str:
     sections.extend(
         [
             "",
-            "## 11. Hydrological-period characterization",
+            "## 11. Caractérisation hydrologique des périodes",
             "",
-            "### Annual summary (2010–2015)",
+            "### Synthèse annuelle (2010–2015)",
             "",
             _hydrological_table(inputs.hydrological_summary),
             "",
-            "### Calibration vs validation aggregates",
+            "### Agrégats calage vs validation",
             "",
             _calibration_validation_aggregate(inputs.hydrological_summary),
             "",
-            "Note: 2014 shows a lower annual maximum daily discharge than neighbouring years "
-            "in this dataset; this is reported as a diagnostic observation requiring "
-            "investigation, not as a definitive anomaly label.",
+            "Note : l'année 2014 présente un maximum journalier de débit observé "
+            "plus bas que les années voisines dans ce jeu de données ; cette "
+            "observation est rapportée à titre diagnostique et nécessite "
+            "investigation, sans être qualifiée d'anomalie définitive.",
             "",
-            "## 12. Limitations",
+            "## 12. Limites",
             "",
-            "- Daily temporal resolution only",
-            "- Centroid precipitation instead of basin-average precipitation",
-            "- Conceptual lumped model rather than a physically distributed representation",
-            "- No precipitation ensemble",
-            "- No rating-curve uncertainty propagation",
-            "- No state assimilation",
-            "- Parametric uncertainty only in the reported envelope",
-            "- Behavioral threshold is prototype-specific and configurable",
-            "- Single pilot basin (one station configuration)",
+            "- Résolution temporelle journalière uniquement",
+            "- Précipitations au centroïde plutôt qu'une précipitation moyenne de bassin",
+            "- Modèle conceptuel global plutôt qu'une représentation physique distribuée",
+            "- Pas d'ensemble de précipitations",
+            "- Pas de propagation d'incertitude de courbe de tarage",
+            "- Pas d'assimilation d'état",
+            "- Incertitude paramétrique seule dans l'enveloppe reportée",
+            "- Seuil comportemental spécifique au prototype et configurable",
+            "- Un seul bassin versant pilote (une configuration de station)",
             "",
-            "## 13. Reproducibility",
+            "## 13. Reproductibilité",
             "",
-            f"- **Generated at (UTC):** {repro['generated_at_utc']}",
-            f"- **Configuration SHA256:** `{repro['config_sha256']}`",
-            f"- **Git commit:** {repro['git_commit'] or 'not available'}",
-            f"- **Python version:** {repro['python_version']}",
-            f"- **Model / prototype version:** {repro['model_version']}",
-            f"- **Random seed:** {repro['random_seed']}",
-            f"- **N simulations:** {repro['n_samples']}",
+            f"- **Généré le (UTC) :** {repro['generated_at_utc']}",
+            f"- **SHA256 de la configuration :** `{repro['config_sha256']}`",
+            f"- **Commit Git :** {repro['git_commit'] or 'non disponible'}",
+            f"- **Version Python :** {repro['python_version']}",
+            f"- **Version modèle / prototype :** {repro['model_version']}",
+            f"- **Graine aléatoire :** {repro['random_seed']}",
+            f"- **N simulations :** {repro['n_samples']}",
             "",
-            "**Package versions:**",
+            "**Versions des paquets :**",
         ]
     )
     for pkg, ver in repro["package_versions"].items():
         sections.append(f"- {pkg}: {ver}")
 
     artifact_lines = [
-        f"- `{inputs.output_dir / 'data' / 'basin_daily.csv'}` — processed daily data",
-        f"- `{inputs.output_dir / 'runs.csv'}` — {len(inputs.runs)} calibration experiments",
-        f"- `{inputs.output_dir / 'top20_calibration.csv'}` — top calibration candidates",
-        f"- `{inputs.output_dir / 'behavioral_runs.csv'}` — behavioral ensemble members",
-        f"- `{inputs.output_dir / 'ensemble_timeseries.csv'}` — ensemble quantile time series",
-        f"- `{inputs.output_dir / 'ensemble_validation.png'}` — validation uncertainty figure",
-        f"- `{inputs.output_dir / 'ensemble_full_validation.png'}` — full validation diagnostic",
-        f"- `{inputs.output_dir / 'parameter_space_diagnostic.png'}` — parameter-space diagnostic",
-        f"- `{inputs.output_dir / 'hydrological_years.png'}` — hydrological characterization figure",
+        f"- `{inputs.output_dir / 'data' / 'basin_daily.csv'}` — données journalières traitées",
+        f"- `{inputs.output_dir / 'runs.csv'}` — {len(inputs.runs)} expériences de calage",
+        f"- `{inputs.output_dir / 'top20_calibration.csv'}` — meilleurs candidats de calage",
+        f"- `{inputs.output_dir / 'behavioral_runs.csv'}` — jeux de paramètres comportementaux",
+        f"- `{inputs.output_dir / 'ensemble_timeseries.csv'}` — séries temporelles des quantiles d'ensemble",
+        f"- `{inputs.output_dir / 'ensemble_validation.png'}` — figure d'incertitude en validation",
+        f"- `{inputs.output_dir / 'ensemble_full_validation.png'}` — diagnostic de validation complète",
+        f"- `{inputs.output_dir / 'parameter_space_diagnostic.png'}` — diagnostic de l'espace des paramètres",
+        f"- `{inputs.output_dir / 'hydrological_years.png'}` — figure de caractérisation hydrologique",
     ]
 
     sections.extend(
         [
             "",
-            "## 14. Artifacts",
+            "## 14. Artéfacts",
             "",
             *artifact_lines,
             "",
-            "## 15. Decision banner",
+            "## 15. Bannière de décision",
             "",
             STATUS_BANNER,
             "",
-            "This prototype must not be interpreted as regulatory, forecasting, or "
-            "operational hydrological validation.",
+            "Ce prototype ne doit pas être interprété comme une validation "
+            "réglementaire, une prévision ou une validation hydrologique opérationnelle.",
             "",
         ]
     )
@@ -586,7 +642,7 @@ def generate_rapport_calage(
     config_path: Path,
     output_dir: Path,
 ) -> Path:
-    """Load experiment outputs and write rapport_calage.md."""
+    """Charger les sorties d'expérience et écrire rapport_calage.md."""
     inputs = load_report_inputs(config_path, output_dir)
     content = render_rapport_calage(inputs)
     output_path = output_dir / REPORT_FILENAME

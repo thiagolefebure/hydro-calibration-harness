@@ -221,6 +221,32 @@ def volume_bias(
     return MetricValue(value=float(value), n_valid=n_valid, is_defined=True)
 
 
+def mae(
+    observed: np.ndarray | pd.Series,
+    simulated: np.ndarray | pd.Series,
+    period_mask: np.ndarray | pd.Series | None = None,
+) -> MetricValue:
+    """Mean absolute error."""
+    obs, sim, n_valid = _as_arrays(observed, simulated, period_mask)
+    if n_valid == 0:
+        return _undefined(0, "no valid observation pairs")
+    value = float(np.mean(np.abs(obs - sim)))
+    return MetricValue(value=value, n_valid=n_valid, is_defined=True)
+
+
+def rmse(
+    observed: np.ndarray | pd.Series,
+    simulated: np.ndarray | pd.Series,
+    period_mask: np.ndarray | pd.Series | None = None,
+) -> MetricValue:
+    """Root mean square error."""
+    obs, sim, n_valid = _as_arrays(observed, simulated, period_mask)
+    if n_valid == 0:
+        return _undefined(0, "no valid observation pairs")
+    value = float(np.sqrt(np.mean((obs - sim) ** 2)))
+    return MetricValue(value=value, n_valid=n_valid, is_defined=True)
+
+
 def compute_metrics(
     observed: pd.Series,
     simulated: pd.Series,

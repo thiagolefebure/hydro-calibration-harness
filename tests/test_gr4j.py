@@ -163,3 +163,37 @@ def test_unit_hydrograph_ordinates_sum_to_one() -> None:
     ord1, ord2 = unit_hydrograph_ordinates(1.4)
     assert ord1.sum() == pytest.approx(1.0)
     assert ord2.sum() == pytest.approx(1.0)
+
+
+def test_return_states_optional_and_non_breaking() -> None:
+    """Optional state timeseries must not change discharge or default API."""
+    inputs = _reference_inputs()
+    params = _reference_params()
+
+    q_default, final_default = run_gr4j(inputs, params)
+    q_states, final_states, states = run_gr4j(inputs, params, return_states=True)
+
+    pd.testing.assert_series_equal(q_default, q_states)
+    assert final_default.production_store == pytest.approx(final_states.production_store)
+    assert final_default.routing_store == pytest.approx(final_states.routing_store)
+    assert list(states.columns) == ["production_store", "routing_store"]
+    assert len(states) == len(inputs)
+    assert states["production_store"].iloc[-1] == pytest.approx(final_states.production_store)
+    assert states["routing_store"].iloc[-1] == pytest.approx(final_states.routing_store)
+
+
+def test_return_full_states_restart_matches_continuous() -> None:
+    """Full end-of-day snapshots restart the continuous run without equation changes."""
+    from src.gr4j import GR4JState
+
+    inputs = _reference_inputs()
+    params = _reference_params()
+    q_full, _, history = run_gr4j(inputs, params, return_full_states=True)
+    assert isinstance(history, list)
+    assert len(history) == len(inputs)
+    assert isinstance(history[0], GR4JState)
+
+    split = 20
+    mid_state = history[split - 1]
+    q_tail, _ = run_gr4j(inputs.iloc[split:], params, initial_state=mid_state)
+    pd.testing.assert_series_equal(q_full.iloc[split:], q_tail)

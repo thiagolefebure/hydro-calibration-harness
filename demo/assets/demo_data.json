@@ -1,17 +1,17 @@
 {
-  "title": "Automated Rainfall\u2013Runoff Calibration",
-  "subtitle": "Prototype of a reproducible calibration harness for hydrological models",
-  "secondary_line": "Real hydrometric data \u00b7 constrained parameter exploration \u00b7 independent validation \u00b7 explicit uncertainty",
-  "prototype_badge": "PROTOTYPE \u2014 NOT FOR OPERATIONAL DECISION-MAKING",
+  "title": "Calage automatisé d'un modèle pluie-débit",
+  "subtitle": "Prototype d'un harnais reproductible de calage de modèles hydrologiques",
+  "secondary_line": "Données hydrométriques réelles · exploration des paramètres sous contraintes · validation indépendante · incertitude explicite",
+  "prototype_badge": "PROTOTYPE — NON DESTINÉ À LA DÉCISION HYDROLOGIQUE OPÉRATIONNELLE",
   "station": {
     "code": "H0203020",
-    "name": "La Laignes \u00e0 Molesme",
+    "name": "La Laignes à Molesme",
     "basin_area_km2": 615.0,
     "centroid_lat": 47.96178,
     "centroid_lon": 4.361
   },
   "periods": {
-    "analysis_label": "2010\u20132015",
+    "analysis_label": "2010–2015",
     "warmup": [
       "2010-01-01",
       "2010-12-31"
@@ -24,11 +24,11 @@
       "2014-01-01",
       "2015-12-31"
     ],
-    "temporal_resolution": "Daily"
+    "temporal_resolution": "Journalière"
   },
   "model": {
     "name": "GR4J",
-    "label": "GR4J \u2014 conceptual rainfall\u2013runoff model"
+    "label": "GR4J — modèle conceptuel pluie–débit"
   },
   "kpis": {
     "n_samples": 5000,
@@ -71,8 +71,8 @@
     "calibration_runtime_per_eval_s": 0.1797
   },
   "reproducibility": {
-    "config_sha256": "0b093d57f547f99b6ba191ad1903ccb368d62ed77bd202028c4b6e06f4ef7353",
-    "git_commit": "a86c07fe76b7da3ca24653a284b252c2b9de563c",
+    "config_sha256": "8b1dc286f64baa343344f531a603ecf5429423b3904e61f3c9e3236e2ccdacac",
+    "git_commit": "66919b5dc13cbf504189fb46bcd9679752c35b55",
     "random_seed": 42,
     "sampler": "latin_hypercube"
   },
@@ -84,8 +84,1350 @@
   },
   "report_html": "assets/rapport_calage.html",
   "statements": {
-    "validation_isolation": "Validation observations are never used for parameter fitting or ranking.",
-    "parametric_only": "Precipitation, observation, initial-state and model-structure uncertainty are not propagated in this prototype.",
-    "envelope_disclaimer": "q05\u2013q95 is NOT a calibrated 90% prediction interval"
+    "validation_isolation": "Les observations de validation ne sont jamais utilisées pour le calage ni pour le classement des paramètres.",
+    "parametric_only": "N'inclut pas les incertitudes liées aux précipitations, aux observations, à l'état initial ni à la structure du modèle.",
+    "envelope_disclaimer": "q05–q95 N'EST PAS un intervalle de prédiction calibré à 90 %",
+    "behavioral_envelope": "L'enveloppe comportementale représente uniquement la dispersion paramétrique."
+  },
+  "ui": {
+    "kpi_samples_caption": "Échantillonnage Latin Hypercube (LHS)",
+    "kpi_kge_caption": "non calé → calé automatiquement",
+    "kpi_bias_caption": "non calé → calé",
+    "git_commit_unavailable": "non disponible"
+  },
+  "ml_correction": {
+    "section_title": "CORRECTION PILOTÉE PAR LES DONNÉES",
+    "section_subtitle": "Une couche de Machine Learning peut-elle améliorer le modèle physique sans remplacer ses fondements hydrologiques ?",
+    "methodology_label": "Période de validation · aucun réglage sur la validation",
+    "pipeline_steps": [
+      "PHYSIQUE D'ABORD",
+      "CARACTÉRISER L'ERREUR RÉSIDUELLE",
+      "TESTER UNE CORRECTION SIMPLE PILOTÉE PAR LES DONNÉES",
+      "AJOUTER DE LA COMPLEXITÉ ML UNIQUEMENT SI ELLE APPORTE UNE VALEUR MESURABLE"
+    ],
+    "models": [
+      {
+        "id": "physical",
+        "label": "GR4J physique",
+        "kge_val": 0.8350031039633835,
+        "source": "ml_model_comparison.csv"
+      },
+      {
+        "id": "persistence",
+        "label": "Persistance du résidu",
+        "kge_val": 0.9837838658884744,
+        "source": "ml_ablation_comparison.csv"
+      },
+      {
+        "id": "ar1",
+        "label": "AR(1)",
+        "kge_val": 0.9824018122926916,
+        "source": "ml_ablation_comparison.csv"
+      },
+      {
+        "id": "ridge",
+        "label": "Ridge",
+        "kge_val": 0.9858063020499588,
+        "source": "ml_model_comparison.csv"
+      },
+      {
+        "id": "hgb",
+        "label": "HistGradientBoosting",
+        "kge_val": 0.9739114019599456,
+        "source": "ml_model_comparison.csv"
+      }
+    ],
+    "kge_axis": {
+      "min": 0.0,
+      "max": 1.0,
+      "label": "KGE de validation"
+    },
+    "gain_captured_pct": 98.65889040342283,
+    "gain_captured_display": "~98.7%",
+    "gain_captured_label": "de l'amélioration de KGE Physique → Ridge est déjà capturée par la persistance du résidu",
+    "residual_acf": {
+      "lag_1": 0.8936370025978588,
+      "lag_2": 0.7764422479808538,
+      "lag_3": 0.6874591819369,
+      "caption": "L'erreur du modèle physique a une mémoire temporelle.",
+      "title": "Autocorrélation du résidu"
+    },
+    "explanation": {
+      "physical": {
+        "title": "1 — MODÈLE PHYSIQUE",
+        "body": "GR4J représente la dynamique pluie–débit et demeure le cœur hydrologique."
+      },
+      "residual": {
+        "title": "2 — RÉSIDU",
+        "equation": "Residual(t) = Qobserved(t) − Qphysical(t)",
+        "body": "Les résidus de la période de calage présentent une forte persistance temporelle."
+      },
+      "correction": {
+        "title": "3 — CORRECTION PILOTÉE PAR LES DONNÉES",
+        "body": "Un modèle statistique estime le résidu futur et corrige la prévision physique :",
+        "equation": "Qhybrid(t+h) = Qphysical(t+h) + residual_hat(t+h)"
+      }
+    },
+    "result": {
+      "heading": "Résultat",
+      "body": "Une correction pilotée par les données améliore sensiblement la référence physique. Mais un modèle simple de persistance du résidu capture presque toute l'amélioration obtenue par Ridge sur ce bassin pilote."
+    },
+    "engineering_decision": {
+      "heading": "Décision d'ingénierie",
+      "body": "Dans ce bassin pilote, l'essentiel du gain provient d'une structure temporelle simple du résidu. Une complexité ML supplémentaire doit donc être justifiée par un gain mesurable."
+    },
+    "architecture_caption": "Le modèle physique demeure le cœur hydrologique ; la couche pilotée par les données corrige le comportement résiduel systématique.",
+    "residual_layer_label": "Couche statistique / ML simple",
+    "scope_note": "Expérience de correction résiduelle — la performance opérationnelle de prévision dépend de l'horizon et du forçage météorologique.",
+    "guardrails": [
+      "GR4J inchangé",
+      "ML entraîné sur la période de calage uniquement",
+      "Validation jamais utilisée pour l'ajustement ni le classement",
+      "Même période de validation pour la comparaison des modèles",
+      "Pas de fuite du débit observé du jour même",
+      "Correction résiduelle évaluée face à des références simples"
+    ],
+    "artifacts": {
+      "model_comparison": "ml_model_comparison.csv",
+      "ablation_comparison": "ml_ablation_comparison.csv",
+      "ablation_answers": "ml_ablation_answers.json"
+    }
+  },
+  "forecast_horizons": {
+    "section_title": "PRÉVISION À 24, 48 ET 72 HEURES",
+    "section_subtitle": "Comment évolue la performance de prévision de +24 h à +72 h ?",
+    "forcing": "oracle",
+    "forcing_label": "FORÇAGE MÉTÉOROLOGIQUE ORACLE",
+    "operational_skill": false,
+    "oracle_banner_title": "FORÇAGE MÉTÉOROLOGIQUE ORACLE",
+    "oracle_banner_body": "Les précipitations futures observées sont utilisées comme forçage. Il ne s'agit pas d'une performance météorologique opérationnelle. Cette expérience utilise les précipitations futures réellement observées afin d'isoler la composante hydrologique de la prévision.",
+    "oracle_banner_emphasis": "Ces résultats ne constituent pas une mesure de performance opérationnelle de prévision.",
+    "scope_note": "CECI N'EST PAS UNE RÉFÉRENCE DE PRÉVISION MÉTÉOROLOGIQUE OPÉRATIONNELLE. Qphysical(t+h) utilise les précipitations futures historiquement observées. L'expérience mesure donc la composante hydrologique / résiduelle de la performance de prévision sous forçage météorologique parfait. La performance opérationnelle dépendra en outre de la qualité des prévisions de précipitations.",
+    "horizons": [
+      {
+        "horizon_days": 1,
+        "hours": 24,
+        "label": "+24 h",
+        "physical_kge": 0.8367466267365706,
+        "persistence_kge": 0.983845867255347,
+        "ar1_kge": 0.9822649094457208,
+        "ridge_kge": 0.983989400479517,
+        "persistence_gain_vs_physical": 0.14709924051877632,
+        "physical_kge_display": "0.837",
+        "persistence_kge_display": "0.984",
+        "ar1_kge_display": "0.982",
+        "ridge_kge_display": "0.984",
+        "persistence_gain_display": "+0.147"
+      },
+      {
+        "horizon_days": 2,
+        "hours": 48,
+        "label": "+48 h",
+        "physical_kge": 0.8376275307801979,
+        "persistence_kge": 0.9658075429002024,
+        "ar1_kge": 0.9649126813483744,
+        "ridge_kge": 0.9635887527300868,
+        "persistence_gain_vs_physical": 0.12818001212000452,
+        "physical_kge_display": "0.838",
+        "persistence_kge_display": "0.966",
+        "ar1_kge_display": "0.965",
+        "ridge_kge_display": "0.964",
+        "persistence_gain_display": "+0.128"
+      },
+      {
+        "horizon_days": 3,
+        "hours": 72,
+        "label": "+72 h",
+        "physical_kge": 0.8383458824093122,
+        "persistence_kge": 0.95167007523504,
+        "ar1_kge": 0.9525053925116036,
+        "ridge_kge": 0.9545144939648575,
+        "persistence_gain_vs_physical": 0.11332419282572781,
+        "physical_kge_display": "0.838",
+        "persistence_kge_display": "0.952",
+        "ar1_kge_display": "0.953",
+        "ridge_kge_display": "0.955",
+        "persistence_gain_display": "+0.113"
+      }
+    ],
+    "chart": {
+      "title": "KGE de validation",
+      "axis_min": 0.0,
+      "axis_max": 1.0,
+      "x_labels": [
+        "+24 h",
+        "+48 h",
+        "+72 h"
+      ],
+      "x_positions": [
+        40.0,
+        160.0,
+        280.0
+      ],
+      "y_top": 12.0,
+      "y_bottom": 118.0,
+      "view_box": "0 0 320 140",
+      "series": [
+        {
+          "id": "physical",
+          "label": "GR4J physique",
+          "kge": [
+            0.8367466267365706,
+            0.8376275307801979,
+            0.8383458824093122
+          ],
+          "polyline": "40.0,29.3 160.0,29.2 280.0,29.1"
+        },
+        {
+          "id": "persistence",
+          "label": "Persistance",
+          "kge": [
+            0.983845867255347,
+            0.9658075429002024,
+            0.95167007523504
+          ],
+          "polyline": "40.0,13.7 160.0,15.6 280.0,17.1"
+        },
+        {
+          "id": "ar1",
+          "label": "AR(1)",
+          "kge": [
+            0.9822649094457208,
+            0.9649126813483744,
+            0.9525053925116036
+          ],
+          "polyline": "40.0,13.9 160.0,15.7 280.0,17.0"
+        },
+        {
+          "id": "ridge",
+          "label": "Ridge",
+          "kge": [
+            0.983989400479517,
+            0.9635887527300868,
+            0.9545144939648575
+          ],
+          "polyline": "40.0,13.7 160.0,15.9 280.0,16.8"
+        }
+      ],
+      "axis_note": "Axe KGE 0–1 (sans zoom sur le haut de l'échelle)."
+    },
+    "persistence_degradation_24_to_72": 0.03217579202030696,
+    "persistence_delta_kge_1_to_3": -0.032175792020307,
+    "persistence_degradation_display": "0.032",
+    "degradation_caption": "La correction résiduelle reste utile à plus long horizon, mais sa valeur prédictive décroît progressivement.",
+    "residual_acf": {
+      "title": "Autocorrélation du résidu",
+      "lag_1": 0.8936370025978588,
+      "lag_2": 0.7764422479808538,
+      "lag_3": 0.6874591819369,
+      "lag_1_display": "0.89",
+      "lag_2_display": "0.78",
+      "lag_3_display": "0.69",
+      "explanation": "L'erreur actuelle du modèle contient une mémoire à court terme. Un résidu récent porte donc de l'information sur l'erreur de modèle à court terme."
+    },
+    "equation": {
+      "hybrid": "Q_hybrid(t+h | t) = Q_physical(t+h | t) + ê_h(t)",
+      "persistence": "ê_h(t) = e(t)",
+      "residual_def": "e(t) = Q_observed(t) − Q_physical(t)",
+      "note": "Pour la référence de persistance, le résidu de modèle observé le plus récent est reporté à +24 / +48 / +72 h."
+    },
+    "architecture_caption": "Précipitations futures étiquetées ORACLE P dans cette expérience.",
+    "high_flow": {
+      "threshold_q_obs": 1.3458731707317075,
+      "threshold_note": "Seuil de haut débit dérivé des données de calage.",
+      "rows": [
+        {
+          "horizon_days": 1,
+          "hours": 24,
+          "label": "+24 h",
+          "physical_mae": 0.5366244932348054,
+          "persistence_mae": 0.1582365795289078,
+          "physical_mae_display": "0.537",
+          "persistence_mae_display": "0.158"
+        },
+        {
+          "horizon_days": 2,
+          "hours": 48,
+          "label": "+48 h",
+          "physical_mae": 0.5366244932348054,
+          "persistence_mae": 0.2305887046028781,
+          "physical_mae_display": "0.537",
+          "persistence_mae_display": "0.231"
+        },
+        {
+          "horizon_days": 3,
+          "hours": 72,
+          "label": "+72 h",
+          "physical_mae": 0.5366244932348054,
+          "persistence_mae": 0.3035792128365159,
+          "physical_mae_display": "0.537",
+          "persistence_mae_display": "0.304"
+        }
+      ],
+      "interpretation": "La correction par persistance aide la prévision en haut débit ; son avantage diminue avec l'horizon."
+    },
+    "result": {
+      "heading": "Résultat",
+      "body": "La correction résiduelle reste utile de +24 h à +72 h dans cette expérience contrôlée."
+    },
+    "model_complexity": {
+      "heading": "Complexité du modèle",
+      "body": "Ridge ne surpasse pas sensiblement la persistance du résidu sur les trois horizons."
+    },
+    "next_question": {
+      "heading": "Question suivante",
+      "body": "Quelle part de cette performance survit lorsque les précipitations futures ne sont plus parfaitement connues ?"
+    },
+    "artifacts": {
+      "comparison": "ml_horizon_comparison.csv",
+      "highflow": "ml_horizon_highflow.csv",
+      "degradation": "ml_horizon_degradation.csv",
+      "answers": "ml_horizon_answers.json"
+    }
+  },
+  "meteo_sensitivity": {
+    "section_title": "SENSIBILITÉ AU FORÇAGE MÉTÉOROLOGIQUE",
+    "section_subtitle": "Que devient la prévision lorsque les précipitations futures ne sont plus connues parfaitement ?",
+    "experiment_type": "synthetic_sensitivity",
+    "real_weather_benchmark": false,
+    "n_meteo_realizations": 100,
+    "banner_title": "ANALYSE DE SENSIBILITÉ SYNTHÉTIQUE AU FORÇAGE MÉTÉOROLOGIQUE",
+    "banner_body": "Perturbations contrôlées des précipitations · N = 100 réalisations météorologiques",
+    "banner_emphasis": "NE CONSTITUE PAS UNE ÉVALUATION D'UN SYSTÈME RÉEL DE PRÉVISION MÉTÉOROLOGIQUE",
+    "disclaimer": "Ces scénarios sont des perturbations synthétiques des précipitations observées. Ils ne mesurent PAS la performance historique d'un système opérationnel de prévision météorologique. La prochaine étape de validation opérationnelle nécessiterait des archives de prévisions telles qu'elles étaient disponibles à chaque origine historique.",
+    "scenario_cards": [
+      {
+        "id": "oracle",
+        "label": "Oracle",
+        "scenario_label": "Oracle",
+        "description": "Précipitations futures observées.",
+        "purpose": "Expérience hydrologique de borne supérieure.",
+        "n_realizations": 1
+      },
+      {
+        "id": "moderate",
+        "label": "Modéré",
+        "scenario_label": "Modéré",
+        "description": "Perturbation synthétique contrôlée des précipitations.",
+        "purpose": "Tester la sensibilité à un forçage imparfait.",
+        "n_realizations": 100
+      },
+      {
+        "id": "strong",
+        "label": "Fort",
+        "scenario_label": "Fort",
+        "description": "Perturbation synthétique renforcée des précipitations.",
+        "purpose": "Mettre à l'épreuve la robustesse de la prévision.",
+        "n_realizations": 100
+      }
+    ],
+    "methodology_details": {
+      "n_realizations": 100,
+      "seed": 42,
+      "moderate": {
+        "magnitude_lognormal_sigma": 0.2,
+        "timing_shift_probability": 0.1,
+        "miss_probability": 0.05,
+        "miss_factor": 0.2,
+        "false_alarm_probability": 0.05,
+        "false_alarm_mm": 1.5
+      },
+      "strong": {
+        "magnitude_lognormal_sigma": 0.4,
+        "timing_shift_probability": 0.25,
+        "miss_probability": 0.15,
+        "miss_factor": 0.1,
+        "false_alarm_probability": 0.12,
+        "false_alarm_mm": 3.0
+      },
+      "note": "Les paramètres de perturbation décrivent une erreur synthétique contrôlée — et non un produit opérationnel de prévision numérique du temps."
+    },
+    "physical_kge": {
+      "oracle": {
+        "24": 0.836653704641398,
+        "48": 0.837583024831797,
+        "72": 0.8383458824093124
+      },
+      "moderate": {
+        "24": 0.8364628763826212,
+        "48": 0.8340118205265,
+        "72": 0.8248369840704892
+      },
+      "strong": {
+        "24": 0.8360086700050814,
+        "48": 0.8221205125005497,
+        "72": 0.7760905392324842
+      }
+    },
+    "chart": {
+      "title": "GR4J physique — KGE de validation",
+      "axis_min": 0.0,
+      "axis_max": 1.0,
+      "x_labels": [
+        "+24 h",
+        "+48 h",
+        "+72 h"
+      ],
+      "x_positions": [
+        40.0,
+        160.0,
+        280.0
+      ],
+      "y_top": 12.0,
+      "y_bottom": 118.0,
+      "view_box": "0 0 320 140",
+      "series": [
+        {
+          "id": "oracle",
+          "label": "Oracle",
+          "kge": [
+            0.836653704641398,
+            0.837583024831797,
+            0.8383458824093124
+          ],
+          "polyline": "40.0,29.3 160.0,29.2 280.0,29.1"
+        },
+        {
+          "id": "moderate",
+          "label": "Modéré",
+          "kge": [
+            0.8364628763826212,
+            0.8340118205265,
+            0.8248369840704892
+          ],
+          "polyline": "40.0,29.3 160.0,29.6 280.0,30.6"
+        },
+        {
+          "id": "strong",
+          "label": "Fort",
+          "kge": [
+            0.8360086700050814,
+            0.8221205125005497,
+            0.7760905392324842
+          ],
+          "polyline": "40.0,29.4 160.0,30.9 280.0,35.7"
+        }
+      ],
+      "axis_note": "Axe KGE 0–1 (échelle honnête ; sans zoom sur le haut)."
+    },
+    "hero_72h": {
+      "label": "Impact de la dégradation synthétique des précipitations à +72 h",
+      "oracle_kge": 0.8383458824093124,
+      "strong_kge": 0.7760905392324842,
+      "delta_kge": -0.06225534317682824,
+      "skill_loss": 0.06225534317682824,
+      "oracle_display": "0.838",
+      "strong_display": "0.776",
+      "delta_display": "-0.062",
+      "statement": "Sous le scénario de forçage synthétique fort, le KGE du modèle physique diminue d'environ 0.062 à +72 h."
+    },
+    "strong_skill_loss": {
+      "24": 0.0006450346363165993,
+      "48": 0.015462512331247291,
+      "72": 0.06225534317682824
+    },
+    "skill_loss_cards": [
+      {
+        "hours": 24,
+        "label": "+24 h",
+        "oracle_kge": 0.836653704641398,
+        "strong_kge": 0.8360086700050814,
+        "skill_loss": 0.0006450346363165993,
+        "skill_loss_display": "0.001",
+        "oracle_display": "0.837",
+        "strong_display": "0.836"
+      },
+      {
+        "hours": 48,
+        "label": "+48 h",
+        "oracle_kge": 0.837583024831797,
+        "strong_kge": 0.8221205125005497,
+        "skill_loss": 0.015462512331247291,
+        "skill_loss_display": "0.015",
+        "oracle_display": "0.838",
+        "strong_display": "0.822"
+      },
+      {
+        "hours": 72,
+        "label": "+72 h",
+        "oracle_kge": 0.8383458824093124,
+        "strong_kge": 0.7760905392324842,
+        "skill_loss": 0.06225534317682824,
+        "skill_loss_display": "0.062",
+        "oracle_display": "0.838",
+        "strong_display": "0.776"
+      }
+    ],
+    "skill_loss_label": "Perte de performance liée à la dégradation synthétique des précipitations",
+    "monte_carlo": {
+      "scenario": "strong",
+      "horizon_hours": 72,
+      "model": "physical",
+      "n_realizations": 100,
+      "kge_median": 0.7760905392324842,
+      "kge_p10": 0.7044290668722023,
+      "kge_p90": 0.8274036191412174,
+      "spread_p90_p10": 0.1229745522690151,
+      "median_display": "0.776",
+      "p10_display": "0.704",
+      "p90_display": "0.827",
+      "spread_display": "0.123",
+      "p10_pct": 70.44290668722023,
+      "median_pct": 77.60905392324841,
+      "p90_pct": 82.74036191412173,
+      "caption_n": "N = 100 réalisations météorologiques avec graine fixée",
+      "caption_spread": "La dispersion représente la sensibilité aux perturbations synthétiques des précipitations, et non une distribution météorologique probabiliste calibrée."
+    },
+    "persistence_comparison": {
+      "rows": [
+        {
+          "scenario": "moderate",
+          "hours": 24,
+          "label": "+24 h",
+          "physical_kge": 0.8364628763826212,
+          "persistence_kge": 0.9837027867090218,
+          "gain": 0.1472399103264006,
+          "physical_display": "0.836",
+          "persistence_display": "0.984",
+          "gain_display": "+0.147"
+        },
+        {
+          "scenario": "moderate",
+          "hours": 48,
+          "label": "+48 h",
+          "physical_kge": 0.8340118205265,
+          "persistence_kge": 0.9622300798427016,
+          "gain": 0.12821825931620157,
+          "physical_display": "0.834",
+          "persistence_display": "0.962",
+          "gain_display": "+0.128"
+        },
+        {
+          "scenario": "moderate",
+          "hours": 72,
+          "label": "+72 h",
+          "physical_kge": 0.8248369840704892,
+          "persistence_kge": 0.93824657236582,
+          "gain": 0.11340958829533077,
+          "physical_display": "0.825",
+          "persistence_display": "0.938",
+          "gain_display": "+0.113"
+        },
+        {
+          "scenario": "strong",
+          "hours": 24,
+          "label": "+24 h",
+          "physical_kge": 0.8360086700050814,
+          "persistence_kge": 0.983364716879536,
+          "gain": 0.14735604687445458,
+          "physical_display": "0.836",
+          "persistence_display": "0.983",
+          "gain_display": "+0.147"
+        },
+        {
+          "scenario": "strong",
+          "hours": 48,
+          "label": "+48 h",
+          "physical_kge": 0.8221205125005497,
+          "persistence_kge": 0.9504924238223644,
+          "gain": 0.1283719113218147,
+          "physical_display": "0.822",
+          "persistence_display": "0.950",
+          "gain_display": "+0.128"
+        },
+        {
+          "scenario": "strong",
+          "hours": 72,
+          "label": "+72 h",
+          "physical_kge": 0.7760905392324842,
+          "persistence_kge": 0.8851091134633957,
+          "gain": 0.10901857423091155,
+          "physical_display": "0.776",
+          "persistence_display": "0.885",
+          "gain_display": "+0.109"
+        }
+      ],
+      "interpretation": "La persistance du résidu reste utile même lorsque le forçage précipitation est dégradé. Son bénéfice ne supprime pas l'incertitude météorologique."
+    },
+    "model_complexity": {
+      "heading": "Complexité du modèle",
+      "ridge_vs_persistence_max_abs": 0.014911236525172678,
+      "ridge_vs_persistence_mean_abs": 0.0042945499018351985,
+      "max_abs_display": "0.015",
+      "mean_abs_display": "0.004",
+      "body": "Ridge ne montre pas d'avantage matériel sur la persistance du résidu dans cette expérience.",
+      "footnote": "La complexité additionnelle du modèle de résidu est secondaire face à l'incertitude météorologique dans cette expérience. L'affirmation ne concerne que cette expérience pilote."
+    },
+    "scale_comparison": {
+      "title": "SOURCE DE VARIABILITÉ",
+      "subtitle": "Comparaison d'échelle — diagnostics différents",
+      "meteo_label": "Forçage météo synthétique (fort +72 h p10–p90)",
+      "meteo_value": 0.1229745522690151,
+      "meteo_display": "0.123",
+      "meteo_bar_pct": 100.0,
+      "residual_label": "Choix du modèle de résidu (max |Ridge − Persistance|)",
+      "residual_value": 0.014911236525172678,
+      "residual_display": "0.015",
+      "residual_bar_pct": 12.125465187751482,
+      "note": "Incertitude météo ≫ différence Ridge vs Persistance (diagnostics différents ; quantités statistiques non identiques)."
+    },
+    "high_flow": {
+      "threshold_q_obs": 1.3458731707317075,
+      "threshold_note": "Seuil de haut débit dérivé des observations de calage uniquement.",
+      "rows": [
+        {
+          "scenario": "oracle",
+          "hours": 24,
+          "label": "+24 h",
+          "physical_mae": 0.5366244932348054,
+          "persistence_mae": 0.1582365795289078,
+          "physical_mae_display": "0.537",
+          "persistence_mae_display": "0.158"
+        },
+        {
+          "scenario": "oracle",
+          "hours": 48,
+          "label": "+48 h",
+          "physical_mae": 0.5366244932348054,
+          "persistence_mae": 0.2305887046028781,
+          "physical_mae_display": "0.537",
+          "persistence_mae_display": "0.231"
+        },
+        {
+          "scenario": "oracle",
+          "hours": 72,
+          "label": "+72 h",
+          "physical_mae": 0.5366244932348054,
+          "persistence_mae": 0.3035792128365159,
+          "physical_mae_display": "0.537",
+          "persistence_mae_display": "0.304"
+        },
+        {
+          "scenario": "strong",
+          "hours": 24,
+          "label": "+24 h",
+          "physical_mae": 0.5378788573384806,
+          "persistence_mae": 0.1569708957188415,
+          "physical_mae_display": "0.538",
+          "persistence_mae_display": "0.157"
+        },
+        {
+          "scenario": "strong",
+          "hours": 48,
+          "label": "+48 h",
+          "physical_mae": 0.5433729205374582,
+          "persistence_mae": 0.2596593911307915,
+          "physical_mae_display": "0.543",
+          "persistence_mae_display": "0.260"
+        },
+        {
+          "scenario": "strong",
+          "hours": 72,
+          "label": "+72 h",
+          "physical_mae": 0.5877836636299314,
+          "persistence_mae": 0.4123554276558858,
+          "physical_mae_display": "0.588",
+          "persistence_mae_display": "0.412"
+        }
+      ],
+      "interpretation": "Les erreurs en haut débit augmentent lorsque le forçage précipitation se dégrade et que l'horizon s'allonge. La correction résiduelle aide encore, mais n'élimine pas le problème de forçage."
+    },
+    "architecture_caption": "L'architecture opérationnelle doit propager l'incertitude météorologique plutôt que de traiter les prévisions de précipitations comme une vérité déterministe.",
+    "nwp_label": "SOURCE D'INCERTITUDE MAJEURE",
+    "result": {
+      "heading": "Résultat",
+      "body": "La dégradation synthétique des précipitations a peu d'impact à +24 h dans ce pilote, mais affecte de plus en plus la performance aux horizons plus longs. À +72 h, le scénario fort dégrade sensiblement la prévision physique."
+    },
+    "engineering_decision": {
+      "heading": "Décision d'ingénierie",
+      "body": "L'incertitude météorologique doit être représentée explicitement dans l'architecture de prévision de STRYMO."
+    },
+    "ml_decision": {
+      "heading": "Décision ML",
+      "body": "Avant d'ajouter un ML résiduel plus complexe, tester le système avec de vraies archives de prévisions météorologiques."
+    },
+    "next_question": {
+      "heading": "Question suivante",
+      "body": "Si les entrées de prévision et les erreurs de modèle sont incertaines, peut-on produire un intervalle de prévision dont la couverture annoncée est réellement observée ?",
+      "lead_in": "→ Calage de l'incertitude de prévision"
+    },
+    "figures": {
+      "summary": "assets/meteo_sensitivity_summary.png",
+      "event": "assets/meteo_sensitivity_event.png"
+    },
+    "artifacts": {
+      "hydrology": "meteo_hydrology_comparison.csv",
+      "diagnostics": "meteo_scenario_diagnostics.csv",
+      "highflow": "meteo_highflow_comparison.csv",
+      "monte_carlo": "meteo_monte_carlo_summary.csv",
+      "answers": "meteo_sensitivity_answers.json"
+    }
+  },
+  "forecast_uncertainty": {
+    "section_title": "INCERTITUDE DE PRÉVISION",
+    "section_subtitle": "Un intervalle annoncé à 90 % couvre-t-il réellement environ 90 % des observations ?",
+    "preferred_method": "empirical_residual",
+    "preferred_label": "préféré après comparaison en validation",
+    "nominal_levels": [
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      0.95
+    ],
+    "target_nominal": 0.9,
+    "target_display": "90%",
+    "calibration_note": "La couverture est calibrée à partir des données antérieures à la validation uniquement. Les observations de validation servent à l'évaluation, pas à l'ajustement des intervalles.",
+    "central_statement": "Qualifier un intervalle de « 90 % » ne garantit pas qu'il couvre réellement 90 % des observations. Il n'est utile que si sa couverture observée est cohérente avec cette affirmation tout en restant suffisamment précis.",
+    "reliability_def": "Fiabilité : couverture empirique proche de la couverture nominale.",
+    "sharpness_def": "Précision de l'intervalle (sharpness) : intervalles aussi étroits que possible, sous réserve d'une fiabilité adéquate.",
+    "table_headers": {
+      "method": "Méthode",
+      "coverage": "Couverture",
+      "mean_width": "Largeur moyenne"
+    },
+    "coverage_90": {
+      "behavioral_parametric": {
+        "24": {
+          "empirical_coverage": 0.5994513031550068,
+          "coverage_error": -0.3005486968449932,
+          "mean_width": 0.2061937435840756,
+          "median_width": 0.1584260016719845,
+          "mean_interval_score": 1.0554810720215604,
+          "empirical_pct_display": "59.9%",
+          "coverage_error_pp_display": "-30.1 pp",
+          "mean_width_display": "0.206",
+          "bar_pct": 59.945130315500684
+        },
+        "48": {
+          "empirical_coverage": 0.6002747252747253,
+          "coverage_error": -0.2997252747252747,
+          "mean_width": 0.2062110112490009,
+          "median_width": 0.1583240211710941,
+          "mean_interval_score": 1.0530746671896951,
+          "empirical_pct_display": "60.0%",
+          "coverage_error_pp_display": "-30.0 pp",
+          "mean_width_display": "0.206",
+          "bar_pct": 60.027472527472526
+        },
+        "72": {
+          "empirical_coverage": 0.6011004126547456,
+          "coverage_error": -0.2988995873452544,
+          "mean_width": 0.2062425644906867,
+          "median_width": 0.1582220406702036,
+          "mean_interval_score": 1.050434851913466,
+          "empirical_pct_display": "60.1%",
+          "coverage_error_pp_display": "-29.9 pp",
+          "mean_width_display": "0.206",
+          "bar_pct": 60.11004126547456
+        }
+      },
+      "conditional_quantile": {
+        "24": {
+          "empirical_coverage": 0.7640603566529492,
+          "coverage_error": -0.1359396433470507,
+          "mean_width": 0.1004194205633221,
+          "median_width": 0.0430279194703546,
+          "mean_interval_score": 0.1966470434741358,
+          "empirical_pct_display": "76.4%",
+          "coverage_error_pp_display": "-13.6 pp",
+          "mean_width_display": "0.100",
+          "bar_pct": 76.40603566529492
+        },
+        "48": {
+          "empirical_coverage": 0.7760989010989011,
+          "coverage_error": -0.1239010989010989,
+          "mean_width": 0.1589237062632869,
+          "median_width": 0.0950624588370398,
+          "mean_interval_score": 0.292155210384596,
+          "empirical_pct_display": "77.6%",
+          "coverage_error_pp_display": "-12.4 pp",
+          "mean_width_display": "0.159",
+          "bar_pct": 77.60989010989012
+        },
+        "72": {
+          "empirical_coverage": 0.8266850068775791,
+          "coverage_error": -0.0733149931224209,
+          "mean_width": 0.2246847693222568,
+          "median_width": 0.1279659252705506,
+          "mean_interval_score": 0.40949072974602,
+          "empirical_pct_display": "82.7%",
+          "coverage_error_pp_display": "-7.3 pp",
+          "mean_width_display": "0.225",
+          "bar_pct": 82.66850068775791
+        }
+      },
+      "empirical_residual": {
+        "24": {
+          "empirical_coverage": 0.935528120713306,
+          "coverage_error": 0.0355281207133059,
+          "mean_width": 0.2564747602748846,
+          "median_width": 0.280669114322724,
+          "mean_interval_score": 0.3712967378069814,
+          "empirical_pct_display": "93.6%",
+          "coverage_error_pp_display": "+3.6 pp",
+          "mean_width_display": "0.256",
+          "bar_pct": 93.5528120713306
+        },
+        "48": {
+          "empirical_coverage": 0.9381868131868132,
+          "coverage_error": 0.0381868131868131,
+          "mean_width": 0.3767363597488864,
+          "median_width": 0.4365572989176008,
+          "mean_interval_score": 0.528833233191975,
+          "empirical_pct_display": "93.8%",
+          "coverage_error_pp_display": "+3.8 pp",
+          "mean_width_display": "0.377",
+          "bar_pct": 93.81868131868131
+        },
+        "72": {
+          "empirical_coverage": 0.9463548830811556,
+          "coverage_error": 0.0463548830811554,
+          "mean_width": 0.4592767606967582,
+          "median_width": 0.5043101026939958,
+          "mean_interval_score": 0.6238948357718463,
+          "empirical_pct_display": "94.6%",
+          "coverage_error_pp_display": "+4.6 pp",
+          "mean_width_display": "0.459",
+          "bar_pct": 94.63548830811555
+        }
+      },
+      "split_conformal": {
+        "24": {
+          "empirical_coverage": 0.97119341563786,
+          "coverage_error": 0.07119341563786,
+          "mean_width": 0.3466018960681414,
+          "median_width": 0.3911171208560406,
+          "mean_interval_score": 0.4137545355555954,
+          "empirical_pct_display": "97.1%",
+          "coverage_error_pp_display": "+7.1 pp",
+          "mean_width_display": "0.347",
+          "bar_pct": 97.119341563786
+        },
+        "48": {
+          "empirical_coverage": 0.9725274725274724,
+          "coverage_error": 0.0725274725274724,
+          "mean_width": 0.5255185255274302,
+          "median_width": 0.5452800393404835,
+          "mean_interval_score": 0.5976149072146154,
+          "empirical_pct_display": "97.3%",
+          "coverage_error_pp_display": "+7.3 pp",
+          "mean_width_display": "0.526",
+          "bar_pct": 97.25274725274724
+        },
+        "72": {
+          "empirical_coverage": 0.9752407152682256,
+          "coverage_error": 0.0752407152682255,
+          "mean_width": 0.6394401980811393,
+          "median_width": 0.634710772657508,
+          "mean_interval_score": 0.7086879255756289,
+          "empirical_pct_display": "97.5%",
+          "coverage_error_pp_display": "+7.5 pp",
+          "mean_width_display": "0.639",
+          "bar_pct": 97.52407152682257
+        }
+      }
+    },
+    "coverage_bars": [
+      {
+        "method": "behavioral_parametric",
+        "hours": 24,
+        "empirical_coverage": 0.5994513031550068,
+        "bar_pct": 59.945130315500684,
+        "label": "behavioral_parametric +24h"
+      },
+      {
+        "method": "behavioral_parametric",
+        "hours": 48,
+        "empirical_coverage": 0.6002747252747253,
+        "bar_pct": 60.027472527472526,
+        "label": "behavioral_parametric +48h"
+      },
+      {
+        "method": "behavioral_parametric",
+        "hours": 72,
+        "empirical_coverage": 0.6011004126547456,
+        "bar_pct": 60.11004126547456,
+        "label": "behavioral_parametric +72h"
+      },
+      {
+        "method": "conditional_quantile",
+        "hours": 24,
+        "empirical_coverage": 0.7640603566529492,
+        "bar_pct": 76.40603566529492,
+        "label": "conditional_quantile +24h"
+      },
+      {
+        "method": "conditional_quantile",
+        "hours": 48,
+        "empirical_coverage": 0.7760989010989011,
+        "bar_pct": 77.60989010989012,
+        "label": "conditional_quantile +48h"
+      },
+      {
+        "method": "conditional_quantile",
+        "hours": 72,
+        "empirical_coverage": 0.8266850068775791,
+        "bar_pct": 82.66850068775791,
+        "label": "conditional_quantile +72h"
+      },
+      {
+        "method": "empirical_residual",
+        "hours": 24,
+        "empirical_coverage": 0.935528120713306,
+        "bar_pct": 93.5528120713306,
+        "label": "empirical_residual +24h"
+      },
+      {
+        "method": "empirical_residual",
+        "hours": 48,
+        "empirical_coverage": 0.9381868131868132,
+        "bar_pct": 93.81868131868131,
+        "label": "empirical_residual +48h"
+      },
+      {
+        "method": "empirical_residual",
+        "hours": 72,
+        "empirical_coverage": 0.9463548830811556,
+        "bar_pct": 94.63548830811555,
+        "label": "empirical_residual +72h"
+      },
+      {
+        "method": "split_conformal",
+        "hours": 24,
+        "empirical_coverage": 0.97119341563786,
+        "bar_pct": 97.119341563786,
+        "label": "split_conformal +24h"
+      },
+      {
+        "method": "split_conformal",
+        "hours": 48,
+        "empirical_coverage": 0.9725274725274724,
+        "bar_pct": 97.25274725274724,
+        "label": "split_conformal +48h"
+      },
+      {
+        "method": "split_conformal",
+        "hours": 72,
+        "empirical_coverage": 0.9752407152682256,
+        "bar_pct": 97.52407152682257,
+        "label": "split_conformal +72h"
+      }
+    ],
+    "method_cards": [
+      {
+        "id": "behavioral_parametric",
+        "title": "PARAMÉTRIQUE COMPORTEMENTAL",
+        "purpose": "Incertitude paramétrique.",
+        "coverage_display": "59.9%",
+        "interpretation": "Trop étroit pour servir d'intervalle de prévision calibré à 90 %. Sa sémantique d'origine diffère d'un intervalle de prévision."
+      },
+      {
+        "id": "conditional_quantile",
+        "title": "QUANTILE CONDITIONNEL",
+        "purpose": "Intervalle conditionnel piloté par les données.",
+        "coverage_display": "76.4% / 77.6% / 82.7%",
+        "interpretation": "Précis, mais sous-couvre de façon matérielle."
+      },
+      {
+        "id": "empirical_residual",
+        "title": "RÉSIDU EMPIRIQUE",
+        "purpose": "Distribution historique des erreurs de prévision.",
+        "coverage_display": "93.6%",
+        "interpretation": "Meilleur équilibre pratique entre fiabilité et largeur dans cette comparaison pilote."
+      },
+      {
+        "id": "split_conformal",
+        "title": "CALIBRATION CONFORME (SPLIT)",
+        "purpose": "Calibration orientée couverture.",
+        "coverage_display": "97.1%",
+        "interpretation": "Garde-fou conservateur ; plus fiable mais plus large."
+      }
+    ],
+    "preferred": {
+      "24": {
+        "nominal": 0.9,
+        "empirical": 0.935528120713306,
+        "coverage_error": 0.0355281207133059,
+        "mean_width": 0.2564747602748846,
+        "median_width": 0.280669114322724,
+        "interval_score": 0.3712967378069814,
+        "nominal_display": "90%",
+        "empirical_display": "93.6%",
+        "coverage_error_pp_display": "+3.6 points de pourcentage",
+        "mean_width_display": "0.256 mm/jour"
+      },
+      "48": {
+        "nominal": 0.9,
+        "empirical": 0.9381868131868132,
+        "coverage_error": 0.0381868131868131,
+        "mean_width": 0.3767363597488864,
+        "median_width": 0.4365572989176008,
+        "interval_score": 0.528833233191975,
+        "nominal_display": "90%",
+        "empirical_display": "93.8%",
+        "coverage_error_pp_display": "+3.8 points de pourcentage",
+        "mean_width_display": "0.377 mm/jour"
+      },
+      "72": {
+        "nominal": 0.9,
+        "empirical": 0.9463548830811556,
+        "coverage_error": 0.0463548830811554,
+        "mean_width": 0.4592767606967582,
+        "median_width": 0.5043101026939958,
+        "interval_score": 0.6238948357718463,
+        "nominal_display": "90%",
+        "empirical_display": "94.6%",
+        "coverage_error_pp_display": "+4.6 points de pourcentage",
+        "mean_width_display": "0.459 mm/jour"
+      }
+    },
+    "hero": {
+      "nominal": 0.9,
+      "empirical": 0.935528120713306,
+      "coverage_error": 0.0355281207133059,
+      "mean_width": 0.2564747602748846,
+      "median_width": 0.280669114322724,
+      "interval_score": 0.3712967378069814,
+      "nominal_display": "90%",
+      "empirical_display": "93.6%",
+      "coverage_error_pp_display": "+3.6 points de pourcentage",
+      "mean_width_display": "0.256 mm/jour",
+      "method": "empirical_residual",
+      "preferred_label": "préféré après comparaison en validation",
+      "caveat": "Une nouvelle période de test intacte est requise avant toute affirmation de performance opérationnelle."
+    },
+    "before_after": {
+      "behavioral_coverage": 0.5994513031550068,
+      "behavioral_display": "59.9%",
+      "calibrated_coverage": 0.935528120713306,
+      "calibrated_display": "93.6%",
+      "calibrated_method": "empirical_residual",
+      "caption": "De la dispersion de jeux de paramètres plausibles à un intervalle de prévision évalué.",
+      "semantics_note": "Sémantiques d'incertitude différentes — comparaison présentée pour la progression méthodologique, non comme une performance de modèles strictement comparable."
+    },
+    "reliability": {
+      "explanation": "Un modèle d'incertitude bien calibré doit rester raisonnablement proche de la diagonale.",
+      "curves": {
+        "24": [
+          {
+            "nominal": 0.5,
+            "empirical": 0.5267489711934157,
+            "nominal_display": "50%",
+            "empirical_display": "52.7%"
+          },
+          {
+            "nominal": 0.6,
+            "empirical": 0.6200274348422496,
+            "nominal_display": "60%",
+            "empirical_display": "62.0%"
+          },
+          {
+            "nominal": 0.7,
+            "empirical": 0.7256515775034293,
+            "nominal_display": "70%",
+            "empirical_display": "72.6%"
+          },
+          {
+            "nominal": 0.8,
+            "empirical": 0.831275720164609,
+            "nominal_display": "80%",
+            "empirical_display": "83.1%"
+          },
+          {
+            "nominal": 0.9,
+            "empirical": 0.935528120713306,
+            "nominal_display": "90%",
+            "empirical_display": "93.6%"
+          },
+          {
+            "nominal": 0.95,
+            "empirical": 0.9766803840877916,
+            "nominal_display": "95%",
+            "empirical_display": "97.7%"
+          }
+        ],
+        "48": [
+          {
+            "nominal": 0.5,
+            "empirical": 0.5398351648351648,
+            "nominal_display": "50%",
+            "empirical_display": "54.0%"
+          },
+          {
+            "nominal": 0.6,
+            "empirical": 0.635989010989011,
+            "nominal_display": "60%",
+            "empirical_display": "63.6%"
+          },
+          {
+            "nominal": 0.7,
+            "empirical": 0.7321428571428571,
+            "nominal_display": "70%",
+            "empirical_display": "73.2%"
+          },
+          {
+            "nominal": 0.8,
+            "empirical": 0.842032967032967,
+            "nominal_display": "80%",
+            "empirical_display": "84.2%"
+          },
+          {
+            "nominal": 0.9,
+            "empirical": 0.9381868131868132,
+            "nominal_display": "90%",
+            "empirical_display": "93.8%"
+          },
+          {
+            "nominal": 0.95,
+            "empirical": 0.9807692307692308,
+            "nominal_display": "95%",
+            "empirical_display": "98.1%"
+          }
+        ],
+        "72": [
+          {
+            "nominal": 0.5,
+            "empirical": 0.5639614855570839,
+            "nominal_display": "50%",
+            "empirical_display": "56.4%"
+          },
+          {
+            "nominal": 0.6,
+            "empirical": 0.640990371389271,
+            "nominal_display": "60%",
+            "empirical_display": "64.1%"
+          },
+          {
+            "nominal": 0.7,
+            "empirical": 0.7414030261348006,
+            "nominal_display": "70%",
+            "empirical_display": "74.1%"
+          },
+          {
+            "nominal": 0.8,
+            "empirical": 0.844566712517194,
+            "nominal_display": "80%",
+            "empirical_display": "84.5%"
+          },
+          {
+            "nominal": 0.9,
+            "empirical": 0.9463548830811556,
+            "nominal_display": "90%",
+            "empirical_display": "94.6%"
+          },
+          {
+            "nominal": 0.95,
+            "empirical": 0.9834938101788172,
+            "nominal_display": "95%",
+            "empirical_display": "98.3%"
+          }
+        ]
+      },
+      "figure": "assets/uncertainty_reliability.png"
+    },
+    "sharpness": {
+      "horizon_hours": 24,
+      "rows": [
+        {
+          "method": "conditional_quantile",
+          "label": "Quantile conditionnel",
+          "coverage": 0.7640603566529492,
+          "coverage_display": "76.4%",
+          "mean_width": 0.1004194205633221,
+          "mean_width_display": "0.100"
+        },
+        {
+          "method": "empirical_residual",
+          "label": "Résidu empirique",
+          "coverage": 0.935528120713306,
+          "coverage_display": "93.6%",
+          "mean_width": 0.2564747602748846,
+          "mean_width_display": "0.256"
+        },
+        {
+          "method": "split_conformal",
+          "label": "Calibration conforme (split)",
+          "coverage": 0.97119341563786,
+          "coverage_display": "97.1%",
+          "mean_width": 0.3466018960681414,
+          "mean_width_display": "0.347"
+        }
+      ],
+      "note": "Plus étroit n'est préférable que si la fiabilité reste acceptable."
+    },
+    "regime_coverage": {
+      "method": "empirical_residual",
+      "horizon_hours": 24,
+      "nominal": 0.9,
+      "overall": 0.935528120713306,
+      "overall_display": "93.6%",
+      "high_flow": {
+        "empirical_coverage": 0.6,
+        "mean_width": 0.2806691143227241,
+        "n_days": 20,
+        "display": "60.0%",
+        "threshold_high": 1.3458731707317075,
+        "threshold_low": 0.0851356097560975
+      },
+      "normal_flow": {
+        "empirical_coverage": 0.9288321167883212,
+        "mean_width": 0.2700240866429955,
+        "n_days": 548,
+        "display": "92.9%",
+        "threshold_high": 1.3458731707317075,
+        "threshold_low": 0.0851356097560975
+      },
+      "low_flow": {
+        "empirical_coverage": 1.0,
+        "mean_width": 0.2073510464197194,
+        "n_days": 161,
+        "display": "100.0%",
+        "threshold_high": 1.3458731707317075,
+        "threshold_low": 0.0851356097560975
+      },
+      "threshold_note": "Seuil de haut débit : Qobs > 90e percentile de la période de calage.",
+      "warning_title": "DÉPENDANCE AU RÉGIME HYDROLOGIQUE",
+      "warning_body": "Une bonne couverture globale peut masquer une sous-couverture importante dans les conditions de haut débit — précisément celles qui sont les plus importantes pour un système d'alerte.",
+      "why_it_matters": "Supposons que 90 % des jours ordinaires soient très bien couverts mais que les événements extrêmes / de haut débit soient systématiquement manqués. La couverture globale peut alors paraître excellente alors que le système échoue sur son cas d'usage à plus fort enjeu. Pour STRYMO, la couverture doit donc être évaluée conditionnellement par régime hydrologique, et non seulement globalement."
+    },
+    "extreme_events": [
+      {
+        "date": "2015-05-05",
+        "q_obs": 2.7542634146341465,
+        "q_point": 2.653886307068044,
+        "lower_90": 2.5048204675020944,
+        "upper_90": 2.7854895818248187,
+        "inside_90": true,
+        "inside_display": "OUI",
+        "q_obs_display": "2.754",
+        "q_point_display": "2.654",
+        "lower_display": "2.505",
+        "upper_display": "2.785"
+      },
+      {
+        "date": "2015-02-02",
+        "q_obs": 1.777311219512195,
+        "q_point": 1.811409378037813,
+        "lower_90": 1.6623435384718637,
+        "upper_90": 1.943012652794588,
+        "inside_90": true,
+        "inside_display": "OUI",
+        "q_obs_display": "1.777",
+        "q_point_display": "1.811",
+        "lower_display": "1.662",
+        "upper_display": "1.943"
+      },
+      {
+        "date": "2015-01-17",
+        "q_obs": 1.4592468292682927,
+        "q_point": 1.5875188514915943,
+        "lower_90": 1.438453011925645,
+        "upper_90": 1.719122126248369,
+        "inside_90": true,
+        "inside_display": "OUI",
+        "q_obs_display": "1.459",
+        "q_point_display": "1.588",
+        "lower_display": "1.438",
+        "upper_display": "1.719"
+      },
+      {
+        "date": "2014-12-20",
+        "q_obs": 1.3578146341463415,
+        "q_point": 1.369106866713511,
+        "lower_90": 1.2200410271475617,
+        "upper_90": 1.5007101414702857,
+        "inside_90": true,
+        "inside_display": "OUI",
+        "q_obs_display": "1.358",
+        "q_point_display": "1.369",
+        "lower_display": "1.220",
+        "upper_display": "1.501"
+      }
+    ],
+    "meteo_comparison": {
+      "method": "empirical_residual",
+      "rows": [
+        {
+          "hours": 24,
+          "label": "+24 h",
+          "oracle_coverage": 0.935528120713306,
+          "moderate_coverage": 0.935528120713306,
+          "oracle_display": "93.6%",
+          "moderate_display": "93.6%",
+          "oracle_width": 0.2564747602748846,
+          "moderate_width": 0.2558046939940587
+        },
+        {
+          "hours": 48,
+          "label": "+48 h",
+          "oracle_coverage": 0.9381868131868132,
+          "moderate_coverage": 0.9381868131868132,
+          "oracle_display": "93.8%",
+          "moderate_display": "93.8%",
+          "oracle_width": 0.3767363597488864,
+          "moderate_width": 0.3993608355764749
+        },
+        {
+          "hours": 72,
+          "label": "+72 h",
+          "oracle_coverage": 0.9463548830811556,
+          "moderate_coverage": 0.953232462173315,
+          "oracle_display": "94.6%",
+          "moderate_display": "95.3%",
+          "oracle_width": 0.4592767606967582,
+          "moderate_width": 0.5367996679788162
+        }
+      ],
+      "message": "Le calage des intervalles et l'incertitude météorologique ne peuvent pas être traités comme indépendants indéfiniment.",
+      "follow_up": "La validation opérationnelle doit être répétée avec le produit météorologique de prévision réellement utilisé."
+    },
+    "uncertainty_sources": {
+      "heading": "QUE DOIT ENTRER À TERME DANS L'INTERVALLE ?",
+      "items": [
+        {
+          "title": "1. INCERTITUDE PARAMÉTRIQUE",
+          "body": "Différents jeux de paramètres hydrologiques plausibles."
+        },
+        {
+          "title": "2. INCERTITUDE MÉTÉOROLOGIQUE",
+          "body": "Différentes trajectoires possibles de précipitations futures."
+        },
+        {
+          "title": "3. RÉSIDU / ERREUR DE MODÈLE",
+          "body": "Ce qui reste inexpliqué par la prévision physique."
+        }
+      ],
+      "future": "Composantes futures : incertitude d'observation et incertitude structurelle du modèle. La Phase 9 ne propage pas encore entièrement chaque source."
+    },
+    "architecture_caption": "Surveiller la couverture globale, la couverture en haut débit, la largeur d'intervalle et l'erreur de prévision. Recalibrer après suffisamment de nouvelles observations / événements — pas à l'aveugle.",
+    "result": {
+      "heading": "Résultat",
+      "body": "Sur cette période de validation pilote, un intervalle simple de résidu empirique autour de la prévision physique + persistance atteint approximativement la couverture nominale de 90 % au niveau global."
+    },
+    "decision": {
+      "heading": "Décision",
+      "body": "Utiliser des références d'incertitude transparentes avant d'introduire un ML probabiliste plus complexe."
+    },
+    "limit": {
+      "heading": "Limite",
+      "body": "La couverture globale ne suffit pas : la couverture en haut débit reste nettement plus faible et doit être validée sur une période indépendante avant un usage opérationnel."
+    },
+    "final_takeaway": "L'objectif n'est pas de produire l'intervalle le plus étroit. L'objectif est de produire l'intervalle le plus étroit auquel on puisse faire confiance.",
+    "figures": {
+      "reliability": "assets/uncertainty_reliability.png",
+      "rolling_coverage": "assets/uncertainty_rolling_coverage.png",
+      "calibrated_demo": "assets/uncertainty_calibrated_demo.png",
+      "before_after": "assets/uncertainty_before_after.png"
+    },
+    "crps_note": "CRPS deferred — interval score used as primary probabilistic score.",
+    "artifacts": {
+      "coverage": "uncertainty_coverage_summary.csv",
+      "regime": "uncertainty_regime_coverage.csv",
+      "extremes": "uncertainty_extreme_events.csv",
+      "forecasts": "uncertainty_forecasts.csv",
+      "answers": "uncertainty_answers.json"
+    }
   }
 }
